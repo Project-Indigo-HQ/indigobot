@@ -8,3 +8,4 @@ langchain-experimental
 langchain_openai
 pymupdf
 pypdf
+beautifulsoup4
