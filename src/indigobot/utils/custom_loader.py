@@ -14,7 +14,8 @@ from langchain_community.document_loaders import AsyncHtmlLoader
 from langchain_community.document_loaders.recursive_url_loader import RecursiveUrlLoader
 
 from indigobot.config import RAG_DIR, r_url_list, url_list, vectorstores
-from indigobot.utils import jf_crawler, refine_html
+from indigobot.utils.jf_crawler import crawl
+from indigobot.utils.refine_html import refine_text, load_JSON_files
 
 
 def clean_text(text):
@@ -163,20 +164,20 @@ def jf_loader(vectorstore):
     """
 
     # Fetching document from website then save to for further process
-    jf_crawler.crawl()
+    crawl()
 
     # # Refine text by removing meanless conent from the XML files
-    refine_html.refine_text()
+    refine_text()
 
     # Load the content into vectorstore database
     JSON_DOCS_DIR = os.path.join(RAG_DIR, "crawl_temp/processed_text")
-    json_docs = refine_html.load_JSON_files(JSON_DOCS_DIR)
+    json_docs = load_JSON_files(JSON_DOCS_DIR)
     print(f"Loaded {len(json_docs)} documents.")
 
     load_docs(json_docs, vectorstore)
 
 
-def main():
+def start_loader():
     """
     Execute the document loading process by scraping web pages, reading PDFs, and loading local files.
     """
@@ -192,6 +193,6 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
+        start_loader()
     except Exception as e:
         print(e)
