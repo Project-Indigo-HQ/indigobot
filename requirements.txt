@@ -1,6 +1,7 @@
 black
 bs4
 build
+fastapi
 isort
 jq
 langchain
@@ -26,3 +27,4 @@ sphinx-autodoc-typehints
 sqlalchemy
 types-pyyaml
 unidecode
+uvicorn
