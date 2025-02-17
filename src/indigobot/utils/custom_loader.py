@@ -4,7 +4,6 @@ The module uses Chroma as a vector database for storing processed documents. It 
 utilities for text cleaning, chunking, and batch processing of documents.
 """
 
-import json
 import os
 import re
 from shutil import rmtree
@@ -60,7 +59,8 @@ def clean_documents(documents):
 
 def chunking(documents):
     """
-    Splits text of documents into smaller chunks for processing.
+    Uses RecursiveCharacterTextSplitter to break documents into chunks
+    of approximately 10000 characters with 1000 character overlap.
 
     :param documents: List of Document objects to split
     :type documents: list[Document]
@@ -75,7 +75,8 @@ def chunking(documents):
 
 def load_docs(docs):
     """
-    Split text of documents into chunks and load them into the Chroma vector store.
+    Processes documents by splitting them into chunks and adding chunks to the
+    vector store in batches of 300.
 
     :param docs: List of Document objects to process and load
     :type docs: list[Document]
@@ -122,11 +123,7 @@ def extract_text(html):
 
 def scrape_main(url, depth):
     """
-     Uses RecursiveUrlLoader with async loading and safety checks:
-    - Prevents scraping outside the original domain
-    - Checks response status codes
-    - Uses timeouts to prevent hanging
-    - Continues on individual page failures
+    Recursively scrapes a URL and its linked pages up to specified depth.
 
     :param url: The base URL to start scraping from
     :type url: str

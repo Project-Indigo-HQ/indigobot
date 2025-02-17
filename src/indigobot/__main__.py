@@ -69,16 +69,29 @@ def main(skip_loader: bool = False, skip_api: bool = False) -> None:
     # Configuration constants
     thread_config = {"configurable": {"thread_id": "abc123"}}
 
+    chat_history = []  # Initialize as a list
+    context = ""
+
     while True:
         try:
             line = input("\nllm>> ")
             if line:
-                result = chatbot_app.invoke(
-                    {"input": line},
-                    config=thread_config,
-                )
+                state = {
+                    "input": line,
+                    "chat_history": chat_history,
+                    "context": context,
+                    "answer": "",
+                }
+
+                result = chatbot_app.invoke(state, config=thread_config)
+
+                # Update chat history and context
+                chat_history = result.get("chat_history", chat_history)
+                context = result.get("context", context)
+
                 print(f"\n{result['answer']}")
             else:
+                print("Exiting chat...")
                 break
         except Exception as e:
             print(f"Error with llm input: {e}")

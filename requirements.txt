@@ -8,6 +8,7 @@ langchain
 langchainhub
 langchain-chroma
 langchain-community
+langchain-core
 langchain-experimental
 langchain_openai
 langgraph
