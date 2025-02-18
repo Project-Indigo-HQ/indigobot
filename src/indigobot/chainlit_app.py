@@ -13,22 +13,29 @@ from indigobot.context import call_model
 pygame.mixer.init()
 
 
-# Function to convert text to speech
 def text_to_speech(text):
-    from gtts import gTTS
+    """Converts text to speech and plays the audio."""
+    
+    # Generate speech audio
     tts = gTTS(text)
     
-    output_path = os.path.join("C:\\Users\\KSR9\\Documents", "output.mp3")  # Change to a safe location
-    tts.save(output_path)
+    # Create a temporary file for cross-platform compatibility
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
+        temp_audio_path = temp_audio.name
+        tts.save(temp_audio_path)
 
-    # Play the audio
-    pygame.mixer.music.load(output_path)
+    # Play the audio using pygame
+    pygame.mixer.music.load(temp_audio_path)
     pygame.mixer.music.play()
 
-    while pygame.mixer.music.get_busy():  # Wait until playback is finished
+    # Wait until the audio finishes playing
+    while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
 
-    return output_path
+    # Cleanup: Remove the temporary file after playback
+    os.remove(temp_audio_path)
+
+    return temp_audio_path  # Returning path just in case it's needed
 
 
 # Function to convert speech to text
