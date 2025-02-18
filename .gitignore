@@ -14,3 +14,4 @@ project_indigo.egg-info
 .coverage
 .chainlit
 chat_cache.dbvenv/
+venv/
