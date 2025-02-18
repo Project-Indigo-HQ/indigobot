@@ -1,6 +1,7 @@
 """
 This module provides functionality for managing conversational state, caching responses,
 and processing queries through a RAG (Retrieval Augmented Generation) pipeline.
+
 """
 
 import hashlib
@@ -425,6 +426,7 @@ def detect_place_query(state: ChatState) -> Union[str, List[str]]:
     
     # If we don't have an answer yet, always go to the model first
     return "model"
+
 def lookup_place_info(state: ChatState) -> Dict:
     """
     Look up place information using the Google Places API and integrate it into the chat.
@@ -462,6 +464,7 @@ def lookup_place_info(state: ChatState) -> Dict:
         "chat_history": state["chat_history"] + [AIMessage(improved_answer)],
         "context": state["context"] + f"\n\nPlace information: {place_info}"
     }
+
 def extract_place_name(state: ChatState) -> Optional[str]:
     """Extract potential place name from user query or model response"""
     # Create a prompt to extract the place name
@@ -481,6 +484,7 @@ def extract_place_name(state: ChatState) -> Optional[str]:
         return None
     
     return potential_name
+
 def store_place_info_in_vectorstore(place_name: str, place_info: str) -> None:
     """Store the place information in the vectorstore for future retrieval"""
     # Format the place info as a document for the vectorstore
@@ -494,6 +498,7 @@ def store_place_info_in_vectorstore(place_name: str, place_info: str) -> None:
         texts=[document_text],
         metadatas=[{"source": "google_places_api", "place_name": place_name}]
     )
+
 def create_place_info_response(original_answer: str, place_info: str) -> str:
     """Create a new response incorporating the place information"""
     # Create a prompt to generate a new response
@@ -521,6 +526,7 @@ workflow.add_node("model", call_model)
 #places_node = ToolNode(lookup_place_info)
 places_node = ToolNode(tools=[lookup_place_info])
 workflow.add_node("places_lookup", places_node)
+
 workflow.add_conditional_edges(
     "model",
     detect_place_query,
