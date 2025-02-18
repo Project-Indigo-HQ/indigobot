@@ -1,7 +1,9 @@
 black
 bs4
 build
+chainlit
 fastapi
+gtts
 isort
 jq
 langchain
@@ -13,6 +15,8 @@ langchain-experimental
 langchain_openai
 langgraph
 myst-parser
+pygame
+pydub
 pylama[all]
 pylama[toml]
 pypdf
@@ -21,6 +25,7 @@ pyyaml
 requests
 setuptools
 setuptools-scm
+speechrecognition
 sphinx
 sphinx-copybutton
 sphinx-rtd-theme
