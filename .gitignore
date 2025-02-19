@@ -13,4 +13,5 @@ project_indigo.egg-info
 .vscode
 .coverage
 .chainlit
-chat_cache.db
+chat_cache.dbvenv/
+venv/

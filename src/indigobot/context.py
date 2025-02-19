@@ -1,13 +1,15 @@
 """
 This module provides functionality for managing conversational state, caching responses,
 and processing queries through a RAG (Retrieval Augmented Generation) pipeline.
+
 """
 
 import hashlib
 import json
 import readline  # Required for using arrow keys in CLI
 import sqlite3
-from typing import Sequence
+from typing import Dict, Sequence, List, Optional, Union
+import re
 
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -15,11 +17,13 @@ from langchain.schema import AIMessage, BaseMessage, HumanMessage
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import START, StateGraph
+from langgraph.graph import START, END, StateGraph
 from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
 from typing_extensions import Annotated, TypedDict
 
 from indigobot.config import CACHE_DB, llm, vectorstore
+from indigobot.places_tool import places_tool
 
 chatbot_retriever = vectorstore.as_retriever()
 
@@ -395,9 +399,143 @@ chatbot_rag_chain = create_retrieval_chain(
     history_aware_retriever, question_answer_chain
 )
 
+def detect_place_query(state: ChatState) -> Union[str, List[str]]:
+    """
+    Detect if the user is asking about a place's hours or details.
+    Returns the next node to execute: either 'places_lookup' or 'model'.
+    
+    This router function analyzes both the user input and the model's initial response
+    to determine if we need to fetch place information.
+    """
+    # If we already have an answer from the model
+    if state.get("answer"):
+        # Check if the model response indicates unknown hours/location information
+        hours_unknown_patterns = [
+            r"I don't have (current|specific) (hours|information) for",
+            r"I'm not sure (about|what) the (hours|schedule|location) (are|is) for",
+            r"I don't know the (hours|operating hours|schedule|location) (of|for)",
+            r"The (hours|schedule|location) (are|is) not (provided|available)",
+            r"don't have information about the (hours|location|address)",
+        ]
+        
+        for pattern in hours_unknown_patterns:
+            if re.search(pattern, state["answer"], re.IGNORECASE):
+                return "places_lookup"
+        
+        return END
+    
+    # If we don't have an answer yet, always go to the model first
+    return "model"
+
+def lookup_place_info(state: ChatState) -> Dict:
+    """
+    Look up place information using the Google Places API and integrate it into the chat.
+    
+    This function:
+    1. Extracts place name from the conversation
+    2. Retrieves place details using the Places tool
+    3. Updates vectorstore with new information if needed
+    4. Prepares an informed response
+    """
+    # Extract potential place name from the user query or model answer
+    place_name = extract_place_name(state)
+    
+    if not place_name:
+        # If we can't extract a place name, return a modified version of the original answer
+        return {
+            "answer": state["answer"] + " I'm unable to find specific information about this place.",
+            "chat_history": state["chat_history"] + [
+                AIMessage(state["answer"] + " I'm unable to find specific information about this place.")
+            ],
+            "context": state["context"],
+        }
+    
+    # Look up the place using the Places tool
+    place_info = places_tool.lookup_place(place_name)
+    
+    # If we got place information, store it in the vectorstore for future use
+    store_place_info_in_vectorstore(place_name, place_info)
+    
+    # Create a new response that incorporates the place information
+    improved_answer = create_place_info_response(state["answer"], place_info)
+    
+    return {
+        "answer": improved_answer,
+        "chat_history": state["chat_history"] + [AIMessage(improved_answer)],
+        "context": state["context"] + f"\n\nPlace information: {place_info}"
+    }
+
+def extract_place_name(state: ChatState) -> Optional[str]:
+    """Extract potential place name from user query or model response"""
+    # Create a prompt to extract the place name
+    extraction_prompt = f"""
+    Extract the name of the place that the user is asking about from this conversation.
+    Return just the name of the place without any explanation.
+    If no specific place name is mentioned, return 'NONE'.
+    
+    User question: {state['input']}
+    AI response: {state['answer']}
+    """
+    
+    response = llm.invoke(extraction_prompt)
+    potential_name = response.strip()
+    
+    if potential_name == "NONE":
+        return None
+    
+    return potential_name
+
+def store_place_info_in_vectorstore(place_name: str, place_info: str) -> None:
+    """Store the place information in the vectorstore for future retrieval"""
+    # Format the place info as a document for the vectorstore
+    document_text = f"""
+    Information about {place_name}:
+    {place_info}
+    """
+    
+    # Add to vectorstore
+    vectorstore.add_texts(
+        texts=[document_text],
+        metadatas=[{"source": "google_places_api", "place_name": place_name}]
+    )
+
+def create_place_info_response(original_answer: str, place_info: str) -> str:
+    """Create a new response incorporating the place information"""
+    # Create a prompt to generate a new response
+    response_prompt = f"""
+    The user asked about a place, and our initial response was:
+    "{original_answer}"
+    
+    We've now found this information from Google Places API:
+    {place_info}
+    
+    Create a helpful response that:
+    1. Acknowledges the limitations in our initial answer
+    2. Provides the accurate information we found
+    3. Is conversational and friendly
+    4. Is concise (maximum 3 sentences for the main information)
+    """
+    
+    new_response = llm.invoke(response_prompt)
+    return new_response.strip()
+
 workflow = StateGraph(state_schema=ChatState)
 workflow.add_edge(START, "model")
 workflow.add_node("model", call_model)
+
+#places_node = ToolNode(lookup_place_info)
+places_node = ToolNode(tools=[lookup_place_info])
+workflow.add_node("places_lookup", places_node)
+
+workflow.add_conditional_edges(
+    "model",
+    detect_place_query,
+    {
+        "places_lookup": "places_lookup",
+        END: END
+    }
+)
+workflow.add_edge("places_lookup", END)
 
 memory = MemorySaver()
 chatbot_app = workflow.compile(checkpointer=memory)
