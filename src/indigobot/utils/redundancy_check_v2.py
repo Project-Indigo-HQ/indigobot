@@ -19,13 +19,18 @@ def quary_chroma(text: str):
 
 def create_text_from_item(item):
     """
-    comments
+    Creates a text string from the structured item.
+
+    :param item: Structured item
+    :type item: dict
+    :return: Concatenated text string
+    :rtype: str
     """
     fields = ["general_category", "main_category", "parent_organization", "listing", "service_description", "city", "postal_code", "website", "hours", "phone"]
     text = "".join([str(item[field]) if field in item else "" for field in fields])
     return text
 
-def check_duplicate_v2(vectorstore, new_item, similarity_threshold=0.9):
+def check_duplicate_v2(vectorstore, new_item, similarity_threshold=0.9):    #FIXME
     """
     Checks if a new item is a duplicate of any item in the vectorstore.
 
@@ -38,21 +43,23 @@ def check_duplicate_v2(vectorstore, new_item, similarity_threshold=0.9):
     :return: True if the new item is a duplicate, False otherwise
     :rtype: bool
     """
-    #initialize the embedding model
-    embeding_model = OpenAIEmbeddings()
+    # Initialize the embedding model
+    embedding_model = OpenAIEmbeddings()
 
-    #create the vector for the new item inorder to compare
+    # Create a text string from the structured item
     new_item_text = create_text_from_item(new_item)
-    new_item_vector = embeding_model.embed(new_item_text)
 
-    #retrieve the existing items from the vectorstore
+    # Convert the new item to a vector
+    new_item_vector = embedding_model.embed_query(new_item_text)
+
+    # Retrieve existing items from the vectorstore
     retriever = vectorstore.as_retriever(
         search_type="mmr", search_kwargs={"k": 1, "fetch_k": 5}
     )
-    exitsting_item = retriever.invoke(new_item_text)
+    existing_items = retriever.invoke(new_item_text)
 
-    #compare the new item vector with the existing item vectors
-    for item in exitsting_item:
+    # Compare the new item vector with the existing item vectors
+    for item in existing_items:
         similarity = np.dot(item["vector"], new_item_vector)
         if similarity > similarity_threshold:
             return True
