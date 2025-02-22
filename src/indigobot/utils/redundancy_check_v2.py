@@ -25,7 +25,7 @@ def create_text_from_item(item):
     text = "".join([str(item[field]) if field in item else "" for field in fields])
     return text
 
-def check_duplicate(vectorstore, new_item, similarity_threshold=0.9):
+def check_duplicate_v2(vectorstore, new_item, similarity_threshold=0.9):
     """
     Checks if a new item is a duplicate of any item in the vectorstore.
 
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     query_text = "123 W Burnside\nPortland OR, 97209"
     results = quary_chroma(query_text)
 
-    is_duplicate = check_duplicate(vectorstore, results[0])
+    is_duplicate = check_duplicate_v2(vectorstore, results[0])
     print(f"Is duplicate: {is_duplicate}")
 
     """

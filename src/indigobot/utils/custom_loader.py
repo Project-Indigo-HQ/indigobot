@@ -24,7 +24,7 @@ from indigobot.config import (
     vectorstore,
 )
 from indigobot.utils.jf_crawler import crawl
-from indigobot.utils.redundancy_check import check_duplicate
+from indigobot.utils.redundancy_check_v2 import check_duplicate_v2
 from indigobot.utils.refine_html import load_JSON_files, refine_text
 
 
@@ -81,9 +81,14 @@ def load_docs(docs):
     :type docs: list[Document]
     :raises Exception: If chunking operations fail
     """
-
     chunks = chunking(docs)
-    add_docs(chunks, 300)
+
+    is_duplicate = check_duplicate_v2(vectorstore, chunks)
+    if is_duplicate:
+        print("Duplicate content found, skipping...")
+        return
+    else:
+        add_docs(chunks, 300)
 
 
 def load_urls(urls):
@@ -94,6 +99,7 @@ def load_urls(urls):
     :type urls: list[str]
     :raises Exception: If URL loading or processing fails
     """
+    """
     try:
         temp_urls = check_duplicate(urls)
         if temp_urls:
@@ -101,7 +107,12 @@ def load_urls(urls):
     except Exception as e:
         print(f"Error in load_urls: {e}")
         raise
-
+    """
+    try:
+        load_docs(AsyncHtmlLoader(urls).load())
+    except Exception as e:
+        print(f"Error in load_urls: {e}")
+        raise
 
 def extract_text(html):
     """
@@ -203,8 +214,11 @@ def jf_loader():
         os.makedirs(JSON_DOCS_DIR, exist_ok=True)
         json_docs = load_JSON_files(JSON_DOCS_DIR)
         print(f"Loaded {len(json_docs)} documents.")
+        
+        for doc in json_docs:
+            load_docs(doc)
 
-        load_docs(json_docs)
+        #load_docs(json_docs)
     else:
         print("no new URLs...")
 

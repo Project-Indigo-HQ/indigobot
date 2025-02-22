@@ -209,23 +209,9 @@ def crawl():
     """
 
     session = start_session()
-    url_list = []
+    #url_list = []
 
-    temp_urls = check_duplicate(sitemaps)
-
-    if temp_urls:
-        # Scrape URLs from the sitemap
-        for page in temp_urls:
-            url_list.extend(parse_url(page, session))
-
-        # Download all resource page as html
-        download_and_save_html(url_list, session)
-
-        print("\nThe crawler is finished")
-        return True
-
-    else:
-        return False
+    download_and_save_html(sitemaps, session)
 
 
 def main():
