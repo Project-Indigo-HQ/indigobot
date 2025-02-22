@@ -209,7 +209,6 @@ def crawl():
     """
 
     session = start_session()
-    #url_list = []
 
     download_and_save_html(sitemaps, session)
 
