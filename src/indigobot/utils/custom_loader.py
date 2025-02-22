@@ -184,6 +184,7 @@ def scrape_urls(urls):
     :type urls: list[str]
     :raises Exception: If scraping or processing fails for any URL
     """
+    """
     try:
         temp_urls = check_duplicate(urls)
         if temp_urls:
@@ -194,7 +195,15 @@ def scrape_urls(urls):
     except Exception as e:
         print(f"Error scraping URLs: {e}")
         raise
-
+    """
+    try:
+        for url in urls:
+            docs = scrape_main(url, 12)
+            chunks = chunking(docs)
+            add_docs(chunks, 300)
+    except Exception as e:
+        print(f"Error scraping URLs: {e}")
+        raise
 
 def jf_loader():
     """
