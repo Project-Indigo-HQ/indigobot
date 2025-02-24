@@ -1,9 +1,11 @@
 """
 This is the main chatbot program/file for conversational capabilities and info distribution.
+Adjusted for cloud run deployment
 """
 
 import readline  # Required for using arrow keys in CLI
 import threading
+import time
 
 from indigobot.context import chatbot_app
 from indigobot.quick_api import start_api
@@ -19,9 +21,11 @@ def load():
 
     :raises: Exception if the loader encounters an error
     """
-    load_res = input("Would you like to execute the loader? (y/n) ")
+    load_res = "y"
+    #load_res = input("Would you like to execute the loader? (y/n) ")
     if load_res == "y":
         try:
+            print(1)
             start_loader()
         except Exception as e:
             print(f"Error booting loader: {e}")
@@ -36,70 +40,29 @@ def api():
 
     :raises: Exception if the API server fails to start
     """
-    load_res = input("Would you like to enable the API? (y/n) ")
+    #load_res = input("Would you like to enable the API? (y/n) ")
+    load_res = "y"
     if load_res == "y":
         try:
             api_thread = threading.Thread(target=start_api, daemon=True)
             api_thread.start()
         except Exception as e:
             print(f"Error booting API: {e}")
+def main():
+    """Main function for Cloud Run."""
+    load()  # Run the scraper
+    api()   # Start FastAPI server
 
+    print("🚀 IndigoBot is running on Cloud Run...")
 
-def main(skip_loader: bool = False, skip_api: bool = False) -> None:
-    """
-    Main function that runs the interactive chat loop.
-    Initializes the chatbot environment and starts an interactive session.
-    Handles user input and displays model responses in a loop until the user exits
-    by entering an empty line.
-
-    :param skip_loader: If True, skips the document loader prompt. Useful for testing.
-    :type skip_loader: bool
-    :param skip_api: If True, skips the API server prompt. Useful for testing.
-    :type skip_api: bool
-    :return: None
-    :raises: KeyboardInterrupt if user interrupts with Ctrl+C
-    :raises: Exception for any other runtime errors
-    """
-    if not skip_loader:
-        load()
-
-    if not skip_api:
-        api()
-
-    # Configuration constants
-    thread_config = {"configurable": {"thread_id": "abc123"}}
-
-    chat_history = []  # Initialize as a list
-    context = ""
-
+    # Keep the container alive (Prevents exit)
     while True:
-        try:
-            line = input("\nllm>> ")
-            if line:
-                state = {
-                    "input": line,
-                    "chat_history": chat_history,
-                    "context": context,
-                    "answer": "",
-                }
-
-                result = chatbot_app.invoke(state, config=thread_config)
-
-                # Update chat history and context
-                chat_history = result.get("chat_history", chat_history)
-                context = result.get("context", context)
-
-                print(f"\n{result['answer']}")
-            else:
-                print("Exiting chat...")
-                break
-        except Exception as e:
-            print(f"Error with llm input: {e}")
+        time.sleep(3600)  # Sleep for 1 hour in a loop
 
 
 if __name__ == "__main__":
     try:
-        main(skip_loader=False, skip_api=False)
+        main()
     except KeyboardInterrupt:
         print("\nExiting...")
     except Exception as e:

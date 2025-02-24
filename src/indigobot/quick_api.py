@@ -13,15 +13,48 @@ The API uses FastAPI for HTTP handling and Pydantic for request/response validat
 import json
 import os
 from typing import Sequence
+import requests
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
+from typing import Optional, List, Dict
+from fastapi import Request, Header
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
+
 from indigobot.context import chatbot_rag_chain, chatbot_retriever
+
+CHATWOOT_ACCESS_TOKEN = os.getenv("CHATWOOT_ACCESS_TOKEN")
+CHATWOOT_API_URL = os.getenv("CHATWOOT_API_URL", "https://your-chatwoot-instance.com")
+CHATWOOT_ACCOUNT_ID = os.getenv("CHATWOOT_ACCOUNT_ID")
+
+def send_message_to_chatwoot(conversation_id, message):
+    url = f"{CHATWOOT_API_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}/conversations/{conversation_id}/messages"
+    print(url)
+    headers = {
+        "api_access_token": CHATWOOT_ACCESS_TOKEN,
+#        "Authorization": f"Bearer {CHATWOOT_ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "content": message,
+        "message_type": "outgoing"
+    }
+    print(f"🔍 Sending message to: {url}")
+    print(f"🔑 Headers: {headers}")
+    print(f"📦 Payload: {payload}")
+
+    response = requests.post(url, json=payload, headers=headers)
+
+    if response.status_code == 200:
+        print("Message sent back to Chatwoot successfully.")
+    else:
+        print(f"Failed to send message: {response.status_code} {response.text}")
 
 
 # Define API models
@@ -70,6 +103,9 @@ class QueryResponse(BaseModel):
             "example": {"answer": "LLM agents are AI systems that can..."}
         }
 
+class Message(BaseModel):
+    content: Optional[str]  # To capture the user's message
+
 
 class WebhookRequest(BaseModel):
     """Request model for the webhook endpoint.
@@ -81,13 +117,12 @@ class WebhookRequest(BaseModel):
     :type source: str
     """
 
-    message: str
-    source: str = "webhook"
+    messages: List[Message] = []   # List of messages from Chatwoot
+    source: Optional[str] = "webhook"
+
 
     class Config:
-        json_schema_extra = {
-            "example": {"message": "Process this message", "source": "slack"}
-        }
+            extra = "allow"
 
 
 class State(BaseModel):
@@ -200,7 +235,7 @@ async def query_model(query_request: QueryRequest):
 
 
 @app.post("/webhook", response_model=QueryResponse, summary="Webhook endpoint")
-async def webhook(request: WebhookRequest):
+async def webhook(request: WebhookRequest, authorization: str = Header(None)):
     """Webhook endpoint to receive messages from external services.
 
     The system performs the following steps:
@@ -214,20 +249,38 @@ async def webhook(request: WebhookRequest):
     :rtype: QueryResponse
     :raises HTTPException: 400 if the webhook payload is invalid, 500 if there's an internal error
     """
-    if not request.message.strip():
-        raise HTTPException(status_code=400, detail="Webhook message cannot be empty")
-
     try:
-        # Process webhook message using the same pipeline as regular queries
-        state = State(input=request.message, chat_history=[], context="").model_dump()
+        print("Webhook triggered!")
+        print("Received WebhookRequest:", request)
 
+        # Extract message content
+        content = request.messages[0].content if request.messages else ""
+
+        # Extract conversation ID directly from the root payload
+        conversation_id = request.id  # This should capture 'id=33'
+
+        print(f"Conversation ID: {conversation_id}")
+
+        if not content or not content.strip():
+            raise HTTPException(status_code=400, detail="Message content cannot be empty")
+
+        # Process with LangChain
+        state = State(input=content, chat_history=[], context="").model_dump()
         response = chatbot_rag_chain.invoke(state)
-        return QueryResponse(answer=response["answer"])
+        answer = response["answer"]
+
+        # Send response back to Chatwoot
+        if conversation_id:
+            send_message_to_chatwoot(conversation_id, answer)
+        else:
+            print("⚠️ conversation_id is missing!")
+
+        return {"answer": answer}
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error processing webhook: {str(e)}"
-        )
+        print(f"❌ Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing webhook: {str(e)}")
+
 
 
 @app.get("/", summary="Health check", response_description="Basic server status")
