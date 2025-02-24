@@ -30,38 +30,28 @@ def create_text_from_item(item):
     text = "".join([str(item[field]) if field in item else "" for field in fields])
     return text
 
-def check_duplicate_v2(vectorstore, new_item, similarity_threshold=0.9):    #FIXME
+def check_duplicate_v2(vectorstore, new_item):
     """
     Checks if a new item is a duplicate of any item in the vectorstore.
 
     :param vectorstore: Vectorstore to check for duplicates
     :type vectorstore: Vectorstore
     :param new_item: New item to check for duplicates
-    :type new_item: dict
+    :type new_item: Document
     :param similarity_threshold: Threshold for similarity between vectors
     :type similarity_threshold: float
     :return: True if the new item is a duplicate, False otherwise
     :rtype: bool
     """
-    # Initialize the embedding model
-    embedding_model = OpenAIEmbeddings()
-
-    # Create a text string from the structured item
-    new_item_text = create_text_from_item(new_item)
-
-    # Convert the new item to a vector
-    new_item_vector = embedding_model.embed_query(new_item_text)
-
     # Retrieve existing items from the vectorstore
     retriever = vectorstore.as_retriever(
         search_type="mmr", search_kwargs={"k": 1, "fetch_k": 5}
     )
-    existing_items = retriever.invoke(new_item_text)
+    existing_items = retriever.invoke(new_item.page_content)
 
-    # Compare the new item vector with the existing item vectors
+    # Compare the new item text with the existing item texts
     for item in existing_items:
-        similarity = np.dot(item["vector"], new_item_vector)
-        if similarity > similarity_threshold:
+        if item.page_content == new_item.page_content:
             return True
     return False
 
@@ -79,6 +69,7 @@ if __name__ == "__main__":
 
     query_text = "123 W Burnside\nPortland OR, 97209"
     results = quary_chroma(query_text)
+    print(f"Query text: {query_text}")
 
     is_duplicate = check_duplicate_v2(vectorstore, results[0])
     print(f"Is duplicate: {is_duplicate}")
