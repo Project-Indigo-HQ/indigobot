@@ -74,11 +74,5 @@ if __name__ == "__main__":
     is_duplicate = check_duplicate_v2(vectorstore, results[0])
     print(f"Is duplicate: {is_duplicate}")
 
-    """
-    for result in results:
-        print(result)
-        print("\n\n\n")
-    """
-
     print("Test finished.")
 
