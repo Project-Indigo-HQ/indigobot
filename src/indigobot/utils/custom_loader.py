@@ -162,7 +162,7 @@ def scrape_main(url, depth):
     return docs
 
 
-def add_docs(chunks, n):
+def add_docs_te(chunks, n):
     """
     Adds document chunks to the vector store in batches.
 
@@ -173,12 +173,24 @@ def add_docs(chunks, n):
     :raises Exception: If vector store operations fail
     """
     for i in range(0, len(chunks), n):
+        vectorstore.add_documents(chunks[i : i + n])
 
-        if(check_duplicate_v2(vectorstore, chunks[i : i + n])):
+def add_docs(chunks, n):
+    for i in range(0, len(chunks), n):
+        if(check_duplicate_v2(vectorstore, chunks[i])):
             print("Duplicate content found, skipping...")
             continue
         else:
-            vectorstore.add_documents(chunks[i : i + n])
+            vectorstore.add_documents(chunks[i])
+
+def add_docs_experiment2(chunks, n):
+    for i in range(0, len(chunks), n):
+        batch = chunks[i : i + n]
+        if any(check_duplicate_v2(vectorstore, doc) for doc in batch):
+            print("Duplicate content found, skipping batch")
+            continue
+        else:
+            vectorstore.add_documents(chunks[i])
 
 
 def scrape_urls(urls):
