@@ -173,7 +173,12 @@ def add_docs(chunks, n):
     :raises Exception: If vector store operations fail
     """
     for i in range(0, len(chunks), n):
-        vectorstore.add_documents(chunks[i : i + n])
+
+        if(check_duplicate_v2(vectorstore, chunks[i : i + n])):
+            print("Duplicate content found, skipping...")
+            continue
+        else:
+            vectorstore.add_documents(chunks[i : i + n])
 
 
 def scrape_urls(urls):
