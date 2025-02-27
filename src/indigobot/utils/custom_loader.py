@@ -83,12 +83,7 @@ def load_docs(docs):
     """
     chunks = chunking(docs)
 
-    is_duplicate = check_duplicate_v2(vectorstore, chunks)
-    if is_duplicate:
-        print("Duplicate content found, skipping...")
-        return
-    else:
-        add_docs(chunks, 300)
+    add_docs(chunks, 300)
 
 
 def load_urls(urls):
@@ -162,7 +157,7 @@ def scrape_main(url, depth):
     return docs
 
 
-def add_docs_te(chunks, n):
+def add_docs(chunks, n):
     """
     Adds document chunks to the vector store in batches.
 
@@ -174,8 +169,8 @@ def add_docs_te(chunks, n):
     """
     for i in range(0, len(chunks), n):
         vectorstore.add_documents(chunks[i : i + n])
-
-def add_docs(chunks, n):
+"""
+def add_docs_experiment1(chunks, n):
     for i in range(0, len(chunks), n):
         if(check_duplicate_v2(vectorstore, chunks[i])):
             print("Duplicate content found, skipping...")
@@ -191,7 +186,7 @@ def add_docs_experiment2(chunks, n):
             continue
         else:
             vectorstore.add_documents(chunks[i])
-
+"""
 
 def scrape_urls(urls):
     """
@@ -257,9 +252,9 @@ def start_loader():
     """
     try:
         scrape_urls(r_url_list)
-        scrape_urls(cls_url_list)
-        load_urls(url_list)
-        jf_loader()
+        #scrape_urls(cls_url_list)
+        #load_urls(url_list)
+        #jf_loader()
 
     except Exception as e:
         print(f"Error loading vectorstore: {e}")

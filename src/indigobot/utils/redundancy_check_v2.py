@@ -30,6 +30,7 @@ def create_text_from_item(item):
     text = "".join([str(item[field]) if field in item else "" for field in fields])
     return text
 
+
 def check_duplicate_v2(vectorstore, new_item):
     """
     Checks if a new item is a duplicate of any item in the vectorstore.
