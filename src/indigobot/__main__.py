@@ -11,59 +11,90 @@ from indigobot.context import chatbot_app
 from indigobot.quick_api import start_api
 from indigobot.utils.custom_loader import start_loader
 
-
 def load():
     """
-    Prompt user to execute the document loader functionality.
-
-    Asks the user if they want to run the document loader and executes it if confirmed.
-    Uses the start_loader() function from custom_loader module.
-
-    :raises: Exception if the loader encounters an error
+    Runs the document loader (scraper) at startup.
     """
-    load_res = "y"
-    #load_res = input("Would you like to execute the loader? (y/n) ")
+    load_res = "y"  # Auto-confirm running the loader
     if load_res == "y":
         try:
-            print(1)
+            print(" Running document loader...")
             start_loader()
         except Exception as e:
-            print(f"Error booting loader: {e}")
+            print(f" Error booting loader: {e}")
 
 
 def api():
     """
-    Prompt user to start the API server.
-
-    Asks the user if they want to enable the API server and starts it if confirmed.
-    Launches quick_api.py as a subprocess and waits 10 seconds for initialization.
-
-    :raises: Exception if the API server fails to start
+    Starts the API server (FastAPI).
     """
-    #load_res = input("Would you like to enable the API? (y/n) ")
-    load_res = "y"
+    load_res = "y"  # Auto-confirm starting API
     if load_res == "y":
         try:
             api_thread = threading.Thread(target=start_api, daemon=True)
             api_thread.start()
         except Exception as e:
-            print(f"Error booting API: {e}")
-def main():
-    """Main function for Cloud Run."""
-    load()  # Run the scraper
-    api()   # Start FastAPI server
+            print(f" Error booting API: {e}")
 
-    print("🚀 IndigoBot is running on Cloud Run...")
 
-    # Keep the container alive (Prevents exit)
+def cloud_run_mode():
+    """
+    Runs the app in Cloud Run mode.
+    - Starts the scraper.
+    - Starts FastAPI.
+    - Keeps the container alive.
+    """
+    load()
+    api()
+    print(" IndigoBot is running on Cloud Run...")
+
+    # Prevents container from exiting
     while True:
-        time.sleep(3600)  # Sleep for 1 hour in a loop
+        time.sleep(3600)  # Sleep for 1 hour
+
+
+def cli_mode():
+    """
+    Runs the chatbot in interactive CLI mode.
+    """
+    load()
+    api()
+
+    thread_config = {"configurable": {"thread_id": "abc123"}}
+    chat_history = []
+    context = ""
+
+    while True:
+        try:
+            line = input("\nllm>> ")
+            if line:
+                state = {
+                    "input": line,
+                    "chat_history": chat_history,
+                    "context": context,
+                    "answer": "",
+                }
+                result = chatbot_app.invoke(state, config=thread_config)
+
+                # Update chat history and context
+                chat_history = result.get("chat_history", chat_history)
+                context = result.get("context", context)
+
+                print(f"\n{result['answer']}")
+            else:
+                print("Exiting chat...")
+                break
+        except Exception as e:
+            print(f" Error with LLM input: {e}")
 
 
 if __name__ == "__main__":
     try:
-        main()
+        # Uncomment the mode you want to run
+        cloud_run_mode()  # Use this for Cloud Run
+        # cli_mode()  # Use this for local CLI mode
+
     except KeyboardInterrupt:
         print("\nExiting...")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f" Error: {e}")
