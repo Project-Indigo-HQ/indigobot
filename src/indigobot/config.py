@@ -12,7 +12,7 @@ from typing import Final, List
 from langchain_chroma import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
-llm = ChatOpenAI(model="gpt-4o")
+llm = ChatOpenAI(model="gpt-4o", streaming=True, temperature=0, verbose=True)
 
 # Directory paths
 CURRENT_DIR: Final[str] = os.path.dirname(__file__)

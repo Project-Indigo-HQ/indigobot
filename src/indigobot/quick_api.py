@@ -23,7 +23,7 @@ from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field, ValidationError
 from typing_extensions import Annotated
 
-from indigobot.context import chatbot_rag_chain, chatbot_retriever, chatbot_app
+from indigobot.context import chatbot_app, chatbot_rag_chain, chatbot_retriever
 
 CHATWOOT_ACCESS_TOKEN = os.getenv("CHATWOOT_ACCESS_TOKEN")
 CHATWOOT_API_URL = os.getenv("CHATWOOT_API_URL", "https://your-chatwoot-instance.com")

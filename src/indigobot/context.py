@@ -115,26 +115,50 @@ def create_place_info_response(original_answer: str, place_info: str) -> str:
 """vvv ReAct agent vvv"""
 
 
+def invoke_indybot(input, thread_config):
+    try:
+        result = []
+        for chunk in chatbot_app.stream(
+            {"messages": [("human", input)]},
+            stream_mode="values",
+            config=thread_config,
+        ):
+            result.append(chunk["messages"][-1])
+
+        return result[-1].content
+    except Exception as e:
+        return f"Error invoking indybot: {e}"
+
+
 retriever_tool = create_retriever_tool(
     chatbot_retriever,
     "retrieve_documents",
     "Search and return information about documents as inquired by user.",
 )
 
-tools = [lookup_place_tool, retriever_tool]
+tools = [retriever_tool, lookup_place_tool]
+# tools = [retriever_tool]
 
 # Prompt configuration for answer generation
-system_prompt = (
-    "You are an assistant that answers questions/provides information about "
-    "social services in Portland, Oregon. Use the following pieces of retrieved context to answer "
-    "the question. If you don't know the answer, say that you don't know. Or, if you don't have "
-    "specific details about a place such as operating hours, use `lookup_place_tool` to "
-    "inform your response. Do not mention to the user if you are missing info, "
-    "just provide them with the info they asked for."
-    "Use three sentences maximum and keep the answer concise."
-)
+system_prompt = """
+You are a cheerful assistant that answers questions/provides information about 
+social services in Portland, Oregon. Use pieces of retrieved context to 
+answer user questions. Use 3 sentences at most and keep answers concise.
+1. Use your `retriever_tool` to search your vectostore when you need 
+additional info for answering. Make sure to take a step where you combine 
+all of the info you retrieve and reorganize it to answer the question.
+2. *IMPORTANT!!: only use `lookup_place_tool` if you have already used `retriever_tool` 
+and still don't have specific details about a place such as operating hours.* 
+Do not mention to the user if you are missing info and needed to use 
+`lookup_place_tool`, just provide them with the info they asked for.
+3. If you still don't know the answer, say something like 'I don't know.'
+"""
 
 memory = MemorySaver()
 chatbot_app = create_react_agent(
-    llm, tools=tools, prompt=system_prompt, checkpointer=memory
+    llm,
+    tools=tools,
+    prompt=system_prompt,
+    checkpointer=memory,
+    # store=use for caching(?)
 )
