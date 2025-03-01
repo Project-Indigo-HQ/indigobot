@@ -5,10 +5,17 @@
 
 import os
 import sys
+import importlib.metadata
 from unittest.mock import MagicMock
 
 # Add the project root directory to the Python path
 sys.path.insert(0, os.path.abspath("../.."))
+
+# Try to get the version from package metadata
+try:
+    version = importlib.metadata.version("indigobot")
+except importlib.metadata.PackageNotFoundError:
+    version = "1.0.0"  # Fallback version
 
 
 class Mock(MagicMock):
@@ -382,9 +389,8 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 project = "Project Indigo"
 copyright = "2024 - Kyle Klein, Avesta Mirashrafi, Melissa Shanks, Grace Trieu, Karl Rosenberg, JunFan Lin, Sam Nelson"
-author = "Kyle Klein, Avesta Mirashrafi, Melissa Stokes, Grace Trieu, Karl Rosenberg, JunFan Lin, Sam Nelson"
-version = "1.0.0"
-release = "1.0.0"
+author = "Kyle Klein, Avesta Mirashrafi, Melissa Shanks, Grace Trieu, Karl Rosenberg, JunFan Lin, Sam Nelson"
+release = version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -402,7 +408,11 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx_copybutton",
     "sphinx.ext.inheritance_diagram",
+    "sphinx.ext.autosummary",
 ]
+
+# Enable todo items
+todo_include_todos = True
 
 # Napoleon settings
 napoleon_google_docstring = True
@@ -439,5 +449,24 @@ exclude_patterns = []
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
+html_favicon = "_static/favicon.ico"
+html_logo = "_static/logo.png"
+html_theme_options = {
+    'logo_only': False,
+    'display_version': True,
+    'prev_next_buttons_location': 'bottom',
+    'style_external_links': True,
+    'style_nav_header_background': '#2980B9',
+}
 
-# suppress_warnings = ["epub.unknown_project_files"]
+# Suppress warnings
+suppress_warnings = ["epub.unknown_project_files"]
+
+# Autodoc settings
+autodoc_default_options = {
+    'members': True,
+    'member-order': 'bysource',
+    'special-members': '__init__',
+    'undoc-members': True,
+    'exclude-members': '__weakref__'
+}

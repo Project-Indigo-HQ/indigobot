@@ -17,7 +17,6 @@ langgraph==0.2.74
 myst-parser
 pylama[all]
 pylama[toml]
-pypdf
 pytest
 pytz
 pyyaml
