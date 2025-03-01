@@ -1,3 +1,14 @@
+"""
+This module provides tools for looking up place information using the Google Places API.
+
+.. moduleauthor:: Team Indigo
+
+Classes
+-------
+PlacesLookupTool
+    A tool for retrieving and formatting place information from Google Places API.
+"""
+
 import os
 from datetime import datetime, time
 from typing import Any, Dict
@@ -7,8 +18,10 @@ from langchain_google_community import GooglePlacesTool
 
 
 class PlacesLookupTool:
+    """A tool for retrieving and formatting place information from Google Places API."""
+
     def __init__(self):
-        """Initialize the Places tool with API key and base configuration"""
+        """Initialize the Places tool with API key and base configuration."""
         self.api_key = os.getenv("GPLACES_API_KEY")
         self.places_tool = GooglePlacesTool(
             gplaces_api_key=self.api_key,
@@ -32,15 +45,33 @@ class PlacesLookupTool:
         )
 
     def _parse_time(self, time_str: str) -> time:
-        """Convert time string from '0000' format to datetime.time object"""
+        """Convert time string from '0000' format to datetime.time object.
+
+        :param time_str: Time string in '0000' format (HHMM)
+        :type time_str: str
+        :return: Converted time object
+        :rtype: datetime.time
+        """
         return time(int(time_str[:2]), int(time_str[2:]))
 
     def _format_time(self, t: time) -> str:
-        """Convert time object to '00:00' format"""
+        """Convert time object to '00:00' format.
+
+        :param t: Time object to format
+        :type t: datetime.time
+        :return: Formatted time string in HH:MM format
+        :rtype: str
+        """
         return t.strftime("%H:%M")
 
     def _get_current_status(self, place_data: Dict[str, Any]) -> str:
-        """Determine if a place is currently open and when it will close/open"""
+        """Determine if a place is currently open and when it will close/open.
+
+        :param place_data: Dictionary containing place data from Google Places API
+        :type place_data: Dict[str, Any]
+        :return: String describing current status (e.g., "Open (Closes at 17:00)")
+        :rtype: str
+        """
         try:
             pacific = pytz.timezone("America/Los_Angeles")
             now = datetime.now(pacific)
@@ -90,7 +121,13 @@ class PlacesLookupTool:
             return f"Hours unknown (Error: {str(e)})"
 
     def _format_hours_section(self, place_data: Dict[str, Any]) -> str:
-        """Format the hours section of place details"""
+        """Format the hours section of place details.
+
+        :param place_data: Dictionary containing place data from Google Places API
+        :type place_data: Dict[str, Any]
+        :return: Formatted string with opening hours information
+        :rtype: str
+        """
         sections = []
 
         weekday_text = place_data.get("opening_hours", {}).get("weekday_text", [])
@@ -102,7 +139,13 @@ class PlacesLookupTool:
         return "Hours: Not available"
 
     def _format_place_details(self, place_data: Dict[str, Any]) -> str:
-        """Format place details into a readable string"""
+        """Format place details into a readable string.
+
+        :param place_data: Dictionary containing place data from Google Places API
+        :type place_data: Dict[str, Any]
+        :return: Formatted string with all place details
+        :rtype: str
+        """
         sections = []
 
         name = place_data.get("name", "N/A")
@@ -129,14 +172,13 @@ class PlacesLookupTool:
         return "\n".join(sections)
 
     def lookup_place(self, query: str) -> str:
-        """
-        Look up details for a place using Google Places API.
+        """Look up details for a place using Google Places API.
 
-        Args:
-            query: The search query for the place
-
-        Returns:
-            Formatted string with place details including hours and current status
+        :param query: The search query for the place (e.g., "Portland Library")
+        :type query: str
+        :return: Formatted string with place details including hours and current status
+        :rtype: str
+        :raises Exception: If there's an error fetching place details
         """
 
         try:

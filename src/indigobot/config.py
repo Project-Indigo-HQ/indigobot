@@ -1,6 +1,4 @@
 """
-Configuration settings for the CfSS application.
-
 This module contains path configurations and URL lists for data scraping operations.
 All URL endpoints and file paths used across the application should be defined here.
 It also defines dicts for LLMs and vector embeddings.

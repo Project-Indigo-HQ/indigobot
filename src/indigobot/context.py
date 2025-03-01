@@ -2,6 +2,25 @@
 This module provides functionality for managing conversational state, caching responses,
 and processing queries through a RAG (Retrieval Augmented Generation) pipeline.
 
+.. moduleauthor:: Team Indigo
+
+Classes
+-------
+LookupPlacesInput
+    Pydantic model for place lookup input validation.
+
+Functions
+---------
+lookup_place_info
+    Retrieves place information using Google Places API.
+extract_place_name
+    Extracts potential place names from user queries.
+store_place_info_in_vectorstore
+    Stores place information in the vector database.
+create_place_info_response
+    Creates responses incorporating place information.
+invoke_indybot
+    Invokes the chatbot with user input and configuration.
 """
 
 from langchain.tools.retriever import create_retriever_tool
@@ -17,6 +36,12 @@ chatbot_retriever = vectorstore.as_retriever()
 
 
 class LookupPlacesInput(BaseModel):
+    """Pydantic model for validating input to the lookup_place_info function.
+
+    :ivar user_input: User's original prompt to be processed by the lookup_place() function
+    :vartype user_input: str
+    """
+
     user_input: str = Field(
         ...,
         description="User's original prompt to be processed by the lookup_place() function",
@@ -24,14 +49,13 @@ class LookupPlacesInput(BaseModel):
 
 
 def lookup_place_info(user_input: str) -> str:
-    """
-    Look up place information using the Google Places API and integrate it into the chat.
+    """Look up place information using the Google Places API, load into store, and integrate it into the chat.
 
-    This function:
-    1. Extracts place name from the conversation
-    2. Retrieves place details using the Places tool
-    3. Updates vectorstore with new information if needed
-    4. Prepares an informed response
+    :param user_input: The user's query containing a potential place name
+    :type user_input: str
+    :return: A response incorporating the place information
+    :rtype: str
+    :raises Exception: If there's an error extracting the place name
     """
 
     print("debug: lookup_place_info called")
@@ -65,7 +89,14 @@ lookup_place_tool = StructuredTool.from_function(
 
 
 def extract_place_name(place_input):
-    """Extract potential place name from user query or model response"""
+    """Extract potential place name from user query or model response.
+
+    :param place_input: The text from which to extract a place name
+    :type place_input: str
+    :return: The language model response containing the extracted place name,
+             or None if no place name is found
+    :rtype: object
+    """
 
     # Create a prompt to extract the place name
     extraction_prompt = f"""
@@ -84,7 +115,14 @@ def extract_place_name(place_input):
 
 
 def store_place_info_in_vectorstore(place_name: str, place_info: str) -> None:
-    """Store the place information in the vectorstore for future retrieval"""
+    """Store the place information in the vectorstore for future retrieval.
+
+    :param place_name: The name of the place
+    :type place_name: str
+    :param place_info: The information about the place to store
+    :type place_info: str
+    :return: None
+    """
 
     # Format the place info as a document for the vectorstore
     document_text = f"""Information about {place_name}: {place_info}"""
@@ -96,7 +134,15 @@ def store_place_info_in_vectorstore(place_name: str, place_info: str) -> None:
 
 
 def create_place_info_response(original_answer: str, place_info: str) -> str:
-    """Create a new response incorporating the place information"""
+    """Create a new response incorporating the place information.
+
+    :param original_answer: The initial response before place information was retrieved
+    :type original_answer: str
+    :param place_info: The information about the place retrieved from the API
+    :type place_info: str
+    :return: A new response incorporating the place information
+    :rtype: str
+    """
 
     # Create a prompt to generate a new response
     response_prompt = f"""
@@ -116,6 +162,16 @@ def create_place_info_response(original_answer: str, place_info: str) -> str:
 
 
 def invoke_indybot(input, thread_config):
+    """Streams the chatbot's response and returns the final content.
+
+    :param input: The user's input message
+    :type input: str
+    :param thread_config: Configuration for the chat thread
+    :type thread_config: dict
+    :return: The chatbot's response content or an error message
+    :rtype: str
+    :raises Exception: Catches and formats any exceptions that occur during invocation
+    """
     try:
         result = []
         for chunk in chatbot_app.stream(
