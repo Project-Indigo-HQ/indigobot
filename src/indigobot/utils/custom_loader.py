@@ -26,8 +26,11 @@ from indigobot.utils.jf_crawler import crawl
 from indigobot.utils.redundancy_check import check_duplicate
 from indigobot.utils.refine_html import load_JSON_files, refine_text
 
-chunk_size = 512
-chunk_overlap = 10
+# chunk_size = 512
+# chunk_overlap = 10
+
+chunk_size = 10000
+chunk_overlap = 1000
 
 
 def clean_text(text):

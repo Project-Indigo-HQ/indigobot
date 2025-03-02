@@ -192,8 +192,8 @@ retriever_tool = create_retriever_tool(
     "Search and return information about documents as inquired by user.",
 )
 
-tools = [retriever_tool, lookup_place_tool]
-# tools = [retriever_tool]
+# tools = [retriever_tool, lookup_place_tool]
+tools = [retriever_tool]
 
 # Prompt configuration for answer generation
 system_prompt = """

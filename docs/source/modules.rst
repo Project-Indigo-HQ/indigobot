@@ -1,5 +1,5 @@
-Project Indigo Modules
-======================
+IndigoBot Modules
+================
 
 .. toctree::
    :maxdepth: 4

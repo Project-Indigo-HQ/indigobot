@@ -2,6 +2,7 @@
 This is the main chatbot program/file for conversational capabilities and info distribution.
 """
 
+import readline
 import threading
 
 from indigobot.context import invoke_indybot

@@ -1,27 +1,26 @@
-Project Indigo Documentation
-============================
+IndigoBot Documentation
+======================
 
-Welcome to Project Indigo's documentation. This project provides a sophisticated RAG (Retrieval-Augmented Generation) system using LangChain for intelligent document processing and retrieval.
+Welcome to IndigoBot's documentation. This project provides a sophisticated RAG (Retrieval-Augmented Generation) system using LangChain for intelligent document processing and retrieval.
 
 Features
 --------
 
-* **Advanced RAG Implementation**: Uses state-of-the-art LLM models including GPT-4, Claude, and Gemini
-* **Multi-Source Document Processing**: Handles PDFs, web pages, and structured data
+* **Advanced RAG Implementation**: Uses state-of-the-art OpenAI LLM models
 * **Intelligent Web Crawling**: Built-in crawler with rate limiting and retry mechanisms
-* **SQL Database Integration**: Native support for SQL databases with AI-powered querying
-* **Vector Store Management**: Uses Chroma for efficient document embedding storage
+* **Vectorstore Management**: Uses Chroma for efficient document embedding storage
+* **Places Information Tool**: Integration with Google Places API for location-based information
 * **Modular Architecture**: Easily extensible for custom document processors
 
 Quick Start
 -----------
 
-To get started with Project Indigo:
+To get started with IndigoBot:
 
 .. code-block:: bash
 
-   git clone https://github.com/yourusername/project-indigo
-   cd project-indigo
+   git clone https://github.com/yourusername/indigobot
+   cd indigobot
    python -m venv venv
    source venv/bin/activate  # On Windows use: venv\Scripts\activate
    pip install -r requirements.txt
@@ -32,13 +31,12 @@ Configuration
 The project requires several environment variables to be set:
 
 * ``OPENAI_API_KEY``: Your OpenAI API key
-* ``ANTHROPIC_API_KEY``: Your Anthropic API key (for Claude)
-* ``GOOGLE_API_KEY``: Your Google API key (for Gemini)
+* ``GPLACES_API_KEY``: Your Google Places API key for the Places Lookup Tool
 
 Installation Requirements
 -------------------------
 
-* Python 3.12 or higher
+* Python 3.10 or higher
 * pip package manager
 * Virtual environment (recommended)
 * 16GB RAM recommended
@@ -50,8 +48,8 @@ Core Components
 * **Document Loader**: Processes various document formats
 * **Web Crawler**: Intelligently crawls and extracts web content
 * **Vector Store**: Manages document embeddings
-* **SQL Agent**: Handles database operations
 * **RAG Engine**: Coordinates retrieval and generation
+* **Places Lookup Tool**: Retrieves and formats place information
 
 .. toctree::
    :maxdepth: 2
@@ -60,7 +58,6 @@ Core Components
    modules
    indigobot
    indigobot.utils
-   indigobot.sql_agent
 
 API Reference
 -------------

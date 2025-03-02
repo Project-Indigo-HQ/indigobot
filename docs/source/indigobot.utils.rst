@@ -20,10 +20,26 @@ indigobot.utils.jf\_crawler module
    :undoc-members:
    :show-inheritance:
 
+indigobot.utils.redundancy\_check module
+----------------------------------------
+
+.. automodule:: indigobot.utils.redundancy_check
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 indigobot.utils.refine\_html module
 -----------------------------------
 
 .. automodule:: indigobot.utils.refine_html
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+indigobot.utils.test\_data\_check module
+----------------------------------------
+
+.. automodule:: indigobot.utils.test_data_check
    :members:
    :undoc-members:
    :show-inheritance:
