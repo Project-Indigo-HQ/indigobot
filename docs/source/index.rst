@@ -57,6 +57,9 @@ Core Components
 
    modules
    indigobot
+   indigobot.context
+   indigobot.places_tool
+   indigobot.quick_api
    indigobot.utils
 
 API Reference
