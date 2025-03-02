@@ -158,9 +158,6 @@ def create_place_info_response(original_answer: str, place_info: str) -> str:
     return new_response.content
 
 
-"""vvv ReAct agent vvv"""
-
-
 def invoke_indybot(input, thread_config):
     """Streams the chatbot's response and returns the final content.
 
@@ -192,8 +189,7 @@ retriever_tool = create_retriever_tool(
     "Search and return information about documents as inquired by user.",
 )
 
-# tools = [retriever_tool, lookup_place_tool]
-tools = [retriever_tool]
+tools = [retriever_tool, lookup_place_tool]
 
 # Prompt configuration for answer generation
 system_prompt = """
