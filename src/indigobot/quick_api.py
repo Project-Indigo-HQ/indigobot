@@ -12,39 +12,33 @@ The API uses FastAPI for HTTP handling and Pydantic for request/response validat
 
 import json
 import os
-from typing import Sequence
-import requests
+from typing import Dict, List, Optional, Sequence
 
+import requests
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from typing_extensions import Annotated
 
-from typing import Optional, List, Dict
-from fastapi import Request, Header
-from fastapi.responses import JSONResponse
-from pydantic import ValidationError
-
-from indigobot.context import chatbot_rag_chain, chatbot_retriever
+from indigobot.context import chatbot_app, chatbot_rag_chain, chatbot_retriever
 
 CHATWOOT_ACCESS_TOKEN = os.getenv("CHATWOOT_ACCESS_TOKEN")
 CHATWOOT_API_URL = os.getenv("CHATWOOT_API_URL", "https://your-chatwoot-instance.com")
 CHATWOOT_ACCOUNT_ID = os.getenv("CHATWOOT_ACCOUNT_ID")
+
 
 def send_message_to_chatwoot(conversation_id, message):
     url = f"{CHATWOOT_API_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}/conversations/{conversation_id}/messages"
     print(url)
     headers = {
         "api_access_token": CHATWOOT_ACCESS_TOKEN,
-#        "Authorization": f"Bearer {CHATWOOT_ACCESS_TOKEN}",
-        "Content-Type": "application/json"
+        #        "Authorization": f"Bearer {CHATWOOT_ACCESS_TOKEN}",
+        "Content-Type": "application/json",
     }
-    payload = {
-        "content": message,
-        "message_type": "outgoing"
-    }
+    payload = {"content": message, "message_type": "outgoing"}
     print(f"🔍 Sending message to: {url}")
     print(f"🔑 Headers: {headers}")
     print(f"📦 Payload: {payload}")
@@ -103,6 +97,7 @@ class QueryResponse(BaseModel):
             "example": {"answer": "LLM agents are AI systems that can..."}
         }
 
+
 class Message(BaseModel):
     content: Optional[str]  # To capture the user's message
 
@@ -117,12 +112,11 @@ class WebhookRequest(BaseModel):
     :type source: str
     """
 
-    messages: List[Message] = []   # List of messages from Chatwoot
+    messages: List[Message] = []  # List of messages from Chatwoot
     source: Optional[str] = "webhook"
 
-
     class Config:
-            extra = "allow"
+        extra = "allow"
 
 
 class State(BaseModel):
@@ -185,6 +179,26 @@ async def query_model(query_request: QueryRequest):
         state = State(
             input=query_request.input, chat_history=[], context=""
         ).model_dump()
+
+        # thread_config = {"configurable": {"thread_id": "abc123"}}
+
+        # if user_input:
+        #     try:
+        #         result = []
+        #         for chunk in chatbot_app.stream(
+
+        #             {"messages": [("human", user_input)]},
+        #             stream_mode="values",
+        #             config=thread_config,
+        #         ):
+        #             result.append(chunk["messages"][-1])
+
+        #         print(result[-1].content)
+        #     except Exception as e:
+        #         print(f"Error with llm invoke: {e}")
+        # else:
+        #     print("Exiting chat...")
+
         response = chatbot_rag_chain.invoke(state)
         # Format context from documents into a concise string
         context = ""
@@ -262,7 +276,9 @@ async def webhook(request: WebhookRequest, authorization: str = Header(None)):
         print(f"Conversation ID: {conversation_id}")
 
         if not content or not content.strip():
-            raise HTTPException(status_code=400, detail="Message content cannot be empty")
+            raise HTTPException(
+                status_code=400, detail="Message content cannot be empty"
+            )
 
         # Process with LangChain
         state = State(input=content, chat_history=[], context="").model_dump()
@@ -279,8 +295,9 @@ async def webhook(request: WebhookRequest, authorization: str = Header(None)):
 
     except Exception as e:
         print(f"❌ Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Error processing webhook: {str(e)}")
-
+        raise HTTPException(
+            status_code=500, detail=f"Error processing webhook: {str(e)}"
+        )
 
 
 @app.get("/", summary="Health check", response_description="Basic server status")
