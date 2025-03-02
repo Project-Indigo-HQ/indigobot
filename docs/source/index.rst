@@ -1,5 +1,5 @@
 IndigoBot Documentation
-======================
+=======================
 
 Welcome to IndigoBot's documentation. This project provides a sophisticated RAG (Retrieval-Augmented Generation) system using LangChain for intelligent document processing and retrieval.
 
@@ -24,6 +24,7 @@ To get started with IndigoBot:
    python -m venv venv
    source venv/bin/activate  # On Windows use: venv\Scripts\activate
    pip install -r requirements.txt
+   pip install -e .
 
 Configuration
 -------------
@@ -32,15 +33,6 @@ The project requires several environment variables to be set:
 
 * ``OPENAI_API_KEY``: Your OpenAI API key
 * ``GPLACES_API_KEY``: Your Google Places API key for the Places Lookup Tool
-
-Installation Requirements
--------------------------
-
-* Python 3.10 or higher
-* pip package manager
-* Virtual environment (recommended)
-* 16GB RAM recommended
-* SSD storage recommended for vector database
 
 Core Components
 ---------------
@@ -51,21 +43,20 @@ Core Components
 * **RAG Engine**: Coordinates retrieval and generation
 * **Places Lookup Tool**: Retrieves and formats place information
 
+Module Documentation
+--------------------
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    modules
    indigobot
+   indigobot.config
    indigobot.context
    indigobot.places_tool
    indigobot.quick_api
    indigobot.utils
-
-API Reference
--------------
-
-See the :ref:`modindex` for detailed API documentation.
 
 License
 -------
