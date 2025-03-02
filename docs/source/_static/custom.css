@@ -1,0 +1,33 @@
+/* Custom styles for documentation */
+.wy-nav-content {
+    max-width: 1000px;
+}
+
+.wy-side-nav-search {
+    background-color: #2980B9;
+}
+
+.wy-menu-vertical header, .wy-menu-vertical p.caption {
+    color: #2980B9;
+}
+
+/* Code block styling */
+div[class^="highlight"] {
+    border-radius: 5px;
+}
+
+/* Improve table styling */
+.rst-content table.docutils {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.rst-content table.docutils td, 
+.rst-content table.docutils th {
+    padding: 8px;
+}
+
+/* Admonition styling */
+.rst-content .admonition {
+    border-radius: 5px;
+}

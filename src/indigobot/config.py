@@ -1,6 +1,4 @@
 """
-Configuration settings for the CfSS application.
-
 This module contains path configurations and URL lists for data scraping operations.
 All URL endpoints and file paths used across the application should be defined here.
 It also defines dicts for LLMs and vector embeddings.
@@ -12,7 +10,7 @@ from typing import Final, List
 from langchain_chroma import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
-llm = ChatOpenAI(model="gpt-4o")
+llm = ChatOpenAI(model="gpt-4o", streaming=True, temperature=0, verbose=True)
 
 # Directory paths
 CURRENT_DIR: Final[str] = os.path.dirname(__file__)

@@ -1,1 +1,1 @@
-"""Tests for the LangChain app"""
+"""Test package for IndigoBot."""

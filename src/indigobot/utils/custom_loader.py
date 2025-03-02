@@ -26,6 +26,12 @@ from indigobot.utils.jf_crawler import crawl
 from indigobot.utils.redundancy_check import check_duplicate
 from indigobot.utils.refine_html import load_JSON_files, refine_text
 
+# chunk_size = 512
+# chunk_overlap = 10
+
+chunk_size = 10000
+chunk_overlap = 1000
+
 
 def clean_text(text):
     """
@@ -68,7 +74,9 @@ def chunking(documents):
     :rtype: list[Document]
     :raises ValueError: If documents cannot be split properly
     """
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap
+    )
     chunks = text_splitter.split_documents(documents)
     return chunks
 

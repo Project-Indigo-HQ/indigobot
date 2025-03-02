@@ -2,6 +2,7 @@ black
 bs4
 build
 fastapi
+googlemaps
 isort
 jq
 langchain
@@ -10,13 +11,14 @@ langchain-chroma
 langchain-community
 langchain-core
 langchain-experimental
+langchain_google_community
 langchain_openai
-langgraph
+langgraph==0.2.74
 myst-parser
 pylama[all]
 pylama[toml]
-pypdf
 pytest
+pytz
 pyyaml
 requests
 setuptools
@@ -25,7 +27,6 @@ sphinx
 sphinx-copybutton
 sphinx-rtd-theme
 sphinx-autodoc-typehints
-sqlalchemy
 types-pyyaml
 unidecode
 uvicorn
