@@ -1,5 +1,5 @@
 indigobot.context module
-========================
+------------------------
 
 This module provides context management for the IndigoBot system, including place information lookup and integration with the RAG system.
 
