@@ -15,6 +15,12 @@ pip install -e .
 python3 -m indigobot
 ```
 
+## API Keys
+
+This program requires API key environment variables for:
+- OpenAI (**required** for LLM engine)
+- Google Places (Places lookup tool for supplementary info)
+
 ## Local Docker Usage
 
 ```bash
