@@ -1,5 +1,5 @@
 IndigoBot Modules
-================
+=================
 
 .. toctree::
    :maxdepth: 4
