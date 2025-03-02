@@ -119,7 +119,7 @@ class PlacesLookupTool:
 
         except Exception as e:
             return f"Hours unknown (Error: {str(e)})"
-
+          
     def _format_hours_section(self, place_data: Dict[str, Any]) -> str:
         """Format the hours section of place details.
 
@@ -170,7 +170,7 @@ class PlacesLookupTool:
             sections.append(hours_section)
 
         return "\n".join(sections)
-
+      
     def lookup_place(self, query: str) -> str:
         """Look up details for a place using Google Places API.
 
