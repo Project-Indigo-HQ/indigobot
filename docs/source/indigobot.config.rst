@@ -6,7 +6,6 @@ This module provides configuration management for the IndigoBot system, includin
 Key Features:
 -------------
 * Environment variable management
-* Configuration for API keys
 * Path settings for data storage
 * LLM model configuration
 
