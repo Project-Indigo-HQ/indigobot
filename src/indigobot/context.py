@@ -24,6 +24,8 @@ invoke_indybot
 """
 
 import re
+import hashlib
+import sqlite3
 from typing import Dict, List, Optional, Union
 
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
@@ -36,11 +38,55 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 from typing_extensions import Annotated, TypedDict
 
-from indigobot.config import llm, vectorstore
+from indigobot.config import CACHE_DB, llm, vectorstore
 from indigobot.places_tool import places_tool
 
 # Create a retriever for the RAG system
 chatbot_retriever = vectorstore.as_retriever()
+
+# ======= Caching Functions (Added from teammate's implementation) =======
+
+def get_cache_connection():
+    """Establishes a connection to the SQLite cache database and ensures the table exists."""
+    conn = sqlite3.connect(CACHE_DB)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS response_cache (
+            query_hash TEXT PRIMARY KEY,
+            response TEXT
+        )
+    """)
+    conn.commit()
+    return conn
+
+
+def hash_query(query: str) -> str:
+    """Generate a hash of the query for use as a cache key."""
+    return hashlib.sha256(query.encode()).hexdigest()
+
+
+def cache_response(query: str, response: str):
+    """Store a response in the cache."""
+    conn = get_cache_connection()
+    cursor = conn.cursor()
+    query_hash = hash_query(query)
+    cursor.execute("INSERT OR REPLACE INTO response_cache (query_hash, response) VALUES (?, ?)", 
+                  (query_hash, response))
+    conn.commit()
+    conn.close()
+
+
+def get_cached_response(query: str) -> str | None:
+    """Retrieve a cached response if available."""
+    conn = get_cache_connection()
+    cursor = conn.cursor()
+    query_hash = hash_query(query)
+    cursor.execute("SELECT response FROM response_cache WHERE query_hash = ?", (query_hash,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None
+
+# ======= End of Caching Functions =======
 
 # Define the state structure for the conversation
 class ChatState(TypedDict):
@@ -82,7 +128,6 @@ def extract_place_name(state: ChatState) -> Optional[str]:
     # Direct pattern matching for common places
     input_lower = state['input'].lower()
     
-    # Thinking to delete manually checking later
     if "trimet" in input_lower:
         if any(term in input_lower for term in ["office", "customer", "service", "center"]):
             return "TriMet Ticket Office Pioneer Square Portland"
@@ -300,6 +345,12 @@ chatbot_app = create_chatbot_app()
 
 def invoke_indybot(input_text, thread_config):
     """Streams the chatbot's response and returns the final content."""
+    # Check cache first (added from teammate's implementation)
+    cached_response = get_cached_response(input_text)
+    if cached_response:
+        print("Returning cached response")
+        return cached_response
+        
     try:
         # Initialize state with all required fields
         initial_state = {
@@ -321,12 +372,18 @@ def invoke_indybot(input_text, thread_config):
                 result.append(chunk["answer"])
         
         # Make sure we get a valid response
+        final_response = None
         if result and hasattr(result[-1], 'content'):
-            return result[-1].content
+            final_response = result[-1].content
         elif result and isinstance(result[-1], str):
-            return result[-1]
+            final_response = result[-1]
         else:
-            return "Sorry, I couldn't process that request properly."
+            final_response = "Sorry, I couldn't process that request properly."
+            
+        # Cache the response (added from teammate's implementation)
+        cache_response(input_text, final_response)
+        
+        return final_response
     except Exception as e:
         print(f"Error in invoke_indybot: {str(e)}")
         return f"Error invoking indybot: {str(e)}"
