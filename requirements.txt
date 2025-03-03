@@ -23,6 +23,7 @@ pyyaml
 requests
 setuptools
 setuptools-scm
+slowapi
 sphinx
 sphinx-copybutton
 sphinx-rtd-theme
