@@ -16,14 +16,14 @@ from typing import Dict, List, Optional, Sequence
 
 import requests
 import uvicorn
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request, WebSocket
 from fastapi.responses import JSONResponse
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field, ValidationError
 from typing_extensions import Annotated
 
-from indigobot.context import chatbot_app, chatbot_rag_chain, chatbot_retriever
+from indigobot.context import chatbot_app, invoke_indybot
 
 CHATWOOT_ACCESS_TOKEN = os.getenv("CHATWOOT_ACCESS_TOKEN")
 CHATWOOT_API_URL = os.getenv("CHATWOOT_API_URL", "https://your-chatwoot-instance.com")
@@ -32,16 +32,11 @@ CHATWOOT_ACCOUNT_ID = os.getenv("CHATWOOT_ACCOUNT_ID")
 
 def send_message_to_chatwoot(conversation_id, message):
     url = f"{CHATWOOT_API_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}/conversations/{conversation_id}/messages"
-    print(url)
     headers = {
         "api_access_token": CHATWOOT_ACCESS_TOKEN,
-        #        "Authorization": f"Bearer {CHATWOOT_ACCESS_TOKEN}",
         "Content-Type": "application/json",
     }
     payload = {"content": message, "message_type": "outgoing"}
-    print(f"🔍 Sending message to: {url}")
-    print(f"🔑 Headers: {headers}")
-    print(f"📦 Payload: {payload}")
 
     response = requests.post(url, json=payload, headers=headers)
 
@@ -154,99 +149,6 @@ app = FastAPI(
     summary="Query the RAG system",
     response_description="The answer and supporting context",
 )
-async def query_model(query_request: QueryRequest):
-    """Query the RAG pipeline with a question.
-
-    The system performs the following steps:
-    1. Retrieve relevant context from the document store
-    2. Generate an answer based on the context
-    3. Return both the answer and the supporting context
-
-    :param query_request: The query request containing the input question
-    :type query_request: QueryRequest
-    :return: Response containing the generated answer
-    :rtype: QueryResponse
-    :raises HTTPException: 400 if the input is invalid, 500 if there's an internal error
-    """
-    if not query_request.input.strip():
-        raise HTTPException(status_code=400, detail="Input query cannot be empty")
-
-    try:
-
-        if not query_request.input or not query_request.input.strip():
-            raise HTTPException(status_code=400, detail="Input query cannot be empty")
-        # Initialize state with empty chat history if none provided
-        state = State(
-            input=query_request.input, chat_history=[], context=""
-        ).model_dump()
-
-        # thread_config = {"configurable": {"thread_id": "abc123"}}
-
-        # if user_input:
-        #     try:
-        #         result = []
-        #         for chunk in chatbot_app.stream(
-
-        #             {"messages": [("human", user_input)]},
-        #             stream_mode="values",
-        #             config=thread_config,
-        #         ):
-        #             result.append(chunk["messages"][-1])
-
-        #         print(result[-1].content)
-        #     except Exception as e:
-        #         print(f"Error with llm invoke: {e}")
-        # else:
-        #     print("Exiting chat...")
-
-        response = chatbot_rag_chain.invoke(state)
-        # Format context from documents into a concise string
-        context = ""
-        if isinstance(response.get("context"), list):
-            # Extract just the service descriptions from the documents
-            contexts = []
-            for doc in response["context"]:
-                content = doc.page_content
-                # Try to extract service description if it exists
-                if "service_description" in content:
-                    try:
-                        content_parts = content.split("{", 1)
-                        if len(content_parts) > 1:
-                            data = json.loads("{" + content_parts[1])
-                            desc = data.get("service_description", "")
-                            if desc:
-                                if len(desc) > 150:
-                                    desc = desc[:150] + "..."
-                                contexts.append(desc)
-                        else:
-                            # Handle content without JSON
-                            if len(content) > 150:
-                                content = content[:150] + "..."
-                            contexts.append(content)
-                    except Exception as e:
-                        # Fallback to simple truncation if JSON parsing fails
-                        if len(content) > 150:
-                            content = content[:150] + "..."
-                        contexts.append(content)
-                        print(
-                            f"JSON parsing failed; falling back to simple truncation; Exception: {e}"
-                        )
-                else:
-                    # Simple truncation for non-service content
-                    if len(content) > 150:
-                        content = content[:150] + "..."
-                    contexts.append(content)
-
-            context = "\n• ".join(contexts)
-        else:
-            context = str(response.get("context", "No context available"))
-            if len(context) > 450:
-                context = context[:450] + "..."
-
-        return QueryResponse(answer=response["answer"])
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
-
 
 @app.post("/webhook", response_model=QueryResponse, summary="Webhook endpoint")
 async def webhook(request: WebhookRequest, authorization: str = Header(None)):
@@ -281,9 +183,13 @@ async def webhook(request: WebhookRequest, authorization: str = Header(None)):
             )
 
         # Process with LangChain
-        state = State(input=content, chat_history=[], context="").model_dump()
-        response = chatbot_rag_chain.invoke(state)
-        answer = response["answer"]
+        thread_config = {
+            "configurable": {
+                "session_id": conversation_id,
+                "thread_id": conversation_id,
+            }
+        }
+        answer = invoke_indybot(content, thread_config)
 
         # Send response back to Chatwoot
         if conversation_id:
@@ -298,6 +204,13 @@ async def webhook(request: WebhookRequest, authorization: str = Header(None)):
         raise HTTPException(
             status_code=500, detail=f"Error processing webhook: {str(e)}"
         )
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"🔍 Incoming Request: {request.method} {request.url}")
+    print(f"📡 User-Agent: {request.headers.get('user-agent')}")
+    response = await call_next(request)
+    return response
 
 
 @app.get("/", summary="Health check", response_description="Basic server status")

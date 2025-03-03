@@ -3,6 +3,7 @@ This is the main chatbot program/file for conversational capabilities and info d
 """
 
 import threading
+import time
 
 from indigobot.quick_api import start_api
 from indigobot.utils.custom_loader import start_loader
@@ -24,11 +25,14 @@ def main() -> None:
     except Exception as e:
         print(f"Error booting loader: {e}")
 
-        try:
-            api_thread = threading.Thread(target=start_api, daemon=True)
-            api_thread.start()
-        except Exception as e:
-            print(f"Error booting API: {e}")
+    try:
+        api_thread = threading.Thread(target=start_api, daemon=True)
+        api_thread.start()
+        while True:
+            time.sleep(3600)
+
+    except Exception as e:
+        print(f"Error booting API: {e}")
 
 
 if __name__ == "__main__":
