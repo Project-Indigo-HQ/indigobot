@@ -13,21 +13,41 @@ The API uses FastAPI for HTTP handling and Pydantic for request/response validat
 import json
 import os
 from typing import Dict, List, Optional, Sequence
+import asyncio
 
 import requests
 import uvicorn
-from fastapi import FastAPI, Header, HTTPException, Request, WebSocket
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field, ValidationError
 from typing_extensions import Annotated
 
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
 from indigobot.context import chatbot_app, invoke_indybot
 
 CHATWOOT_ACCESS_TOKEN = os.getenv("CHATWOOT_ACCESS_TOKEN")
 CHATWOOT_API_URL = os.getenv("CHATWOOT_API_URL", "https://your-chatwoot-instance.com")
 CHATWOOT_ACCOUNT_ID = os.getenv("CHATWOOT_ACCOUNT_ID")
+
+# Function to extract conversation ID from request
+def get_conversation_id(request: Request):
+    try:
+        body = request.scope.get("body", b"").decode("utf-8")  # Get raw body
+        payload = json.loads(body) if body else {}  # Parse JSON if available
+        conversation_id = payload.get("id", "unknown")  # Extract conversation ID
+        print(f"🔍 Rate Limiting Conversation ID: {conversation_id}")  # Debug log
+        return str(conversation_id)
+    except Exception as e:
+        print(f"❌ Failed to get conversation ID: {e}")
+        return "unknown"
+
+limiter = Limiter(key_func=get_conversation_id)
 
 
 def send_message_to_chatwoot(conversation_id, message):
@@ -38,43 +58,20 @@ def send_message_to_chatwoot(conversation_id, message):
     }
     payload = {"content": message, "message_type": "outgoing"}
 
-    response = requests.post(url, json=payload, headers=headers)
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=5)  # ⏳ Add timeout (5 seconds)
+        response.raise_for_status()  # Raise an error for bad status codes (4xx, 5xx)
 
-    if response.status_code == 200:
-        print("Message sent back to Chatwoot successfully.")
-    else:
-        print(f"Failed to send message: {response.status_code} {response.text}")
+        if response.status_code == 200:
+            print("✅ Message sent back to Chatwoot successfully.")
+        else:
+            print(f"❌ Failed to send message: {response.status_code} {response.text}")
 
+    except requests.Timeout:
+        print("⏳❌ Timeout: Chatwoot API took too long to respond!")
+    except requests.RequestException as e:
+        print(f"❌ Network error sending message: {e}")
 
-# Define API models
-class QueryRequest(BaseModel):
-    """Request model for the query endpoint.
-
-    :param input: The question or query text to be processed by the RAG system.
-                 Should be a clear, well-formed question in natural language.
-    :type input: str
-    """
-
-    input: str
-
-    class Config:
-        json_schema_extra = {
-            "example": {"input": "What are the key concepts of LLM agents?"}
-        }
-
-    @classmethod
-    def validate_request(cls, data: dict) -> "QueryRequest":
-        """Custom validation to handle various input formats"""
-        if isinstance(data, dict):
-            if "input" in data:
-                return cls(input=str(data["input"]))
-            # Try to convert the first value found to input
-            for val in data.values():
-                return cls(input=str(val))
-        # If we get a string directly, use it as input
-        if isinstance(data, str):
-            return cls(input=data)
-        raise ValueError("Invalid input format")
 
 
 class QueryResponse(BaseModel):
@@ -84,14 +81,11 @@ class QueryResponse(BaseModel):
                   and retrieved context.
     :type answer: str
     """
-
     answer: str
-
     class Config:
         json_schema_extra = {
             "example": {"answer": "LLM agents are AI systems that can..."}
         }
-
 
 class Message(BaseModel):
     content: Optional[str]  # To capture the user's message
@@ -114,26 +108,6 @@ class WebhookRequest(BaseModel):
         extra = "allow"
 
 
-class State(BaseModel):
-    """Pydantic model for maintaining and validating chat state.
-
-    :param input: The current user input/query.
-    :type input: str
-    :param chat_history: List of previous chat messages, annotated with add_messages
-                        for proper message handling.
-    :type chat_history: Sequence[BaseMessage]
-    :param context: Retrieved context from the RAG system.
-    :type context: str
-    :param answer: Generated answer for the current query.
-    :type answer: str
-    """
-
-    input: str
-    chat_history: Annotated[Sequence[BaseMessage], add_messages] = []
-    context: str = ""
-    answer: str = ""
-
-
 # FastAPI app initialization
 app = FastAPI(
     title="RAG API",
@@ -141,17 +115,22 @@ app = FastAPI(
     version="1.0.0",
 )
 
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 
 # Define API endpoints
-@app.post(
-    "/query",
-    response_model=QueryResponse,
-    summary="Query the RAG system",
-    response_description="The answer and supporting context",
-)
+
+@app.exception_handler(RateLimitExceeded)
+async def ratelimit_handler(request: Request, exc: RateLimitExceeded):
+    conversation_id = get_conversation_id(request)
+
+    print(f"⛔ Rate limit exceeded for conversation: {get_conversation_id(request)}")
+    return PlainTextResponse("⛔ Rate limit exceeded. Try again later.", status_code=429)
+
 
 @app.post("/webhook", response_model=QueryResponse, summary="Webhook endpoint")
-async def webhook(request: WebhookRequest, authorization: str = Header(None)):
+@limiter.limit("10/minute")  #limit to 10 a minute
+async def webhook(request: Request, webhook_request:  WebhookRequest, authorization: str = Header(None)):
     """Webhook endpoint to receive messages from external services.
 
     The system performs the following steps:
@@ -168,16 +147,14 @@ async def webhook(request: WebhookRequest, authorization: str = Header(None)):
     try:
         print("Webhook triggered!")
         print("Received WebhookRequest:", request)
+        payload = await request.json()  
+        conversation_id = payload.get("id", "unknown")
 
-        # Extract message content
-        content = request.messages[0].content if request.messages else ""
-
-        # Extract conversation ID directly from the root payload
-        conversation_id = request.id  # This should capture 'id=33'
-
-        print(f"Conversation ID: {conversation_id}")
-
-        if not content or not content.strip():
+        messages = payload.get("messages", [])
+        content = messages[0].get("content", "")
+        conversation_id = messages[0].get("conversation_id", "")
+        
+        if not content:
             raise HTTPException(
                 status_code=400, detail="Message content cannot be empty"
             )
@@ -205,14 +182,6 @@ async def webhook(request: WebhookRequest, authorization: str = Header(None)):
             status_code=500, detail=f"Error processing webhook: {str(e)}"
         )
 
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    print(f"🔍 Incoming Request: {request.method} {request.url}")
-    print(f"📡 User-Agent: {request.headers.get('user-agent')}")
-    response = await call_next(request)
-    return response
-
-
 @app.get("/", summary="Health check", response_description="Basic server status")
 async def root():
     """Health check endpoint to verify the API is running.
@@ -225,33 +194,6 @@ async def root():
         - version (str): API version number
     """
     return {"status": "healthy", "message": "RAG API is running!", "version": "1.0.0"}
-
-
-@app.get(
-    "/sources",
-    summary="List available sources",
-    response_description="List of document sources in the system",
-)
-async def list_sources():
-    """List all document sources available in the vector store.
-
-    Retrieves unique source identifiers from document metadata in the vector store.
-
-    :return: Dictionary containing list of sources
-    :rtype: dict
-    :returns: Dictionary with the following keys:
-        - sources (list): List of unique source identifiers
-    :raises HTTPException: 500 if there's an error accessing the vector store
-    """
-    try:
-        document_data_sources = set()
-        for doc_metadata in chatbot_retriever.vectorstore.get()["metadatas"]:
-            document_data_sources.add(doc_metadata["source"])
-        return {"sources": list(document_data_sources)}
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error retrieving sources: {str(e)}"
-        )
 
 
 def start_api():
