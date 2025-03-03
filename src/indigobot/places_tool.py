@@ -1,5 +1,12 @@
 """
-This module provides a tool for retrieving place information from Google Places API.
+This module provides tools for looking up place information using the Google Places API.
+
+.. moduleauthor:: Team Indigo
+
+Classes
+-------
+PlacesLookupTool
+    A tool for retrieving and formatting place information from Google Places API.
 """
 
 import os

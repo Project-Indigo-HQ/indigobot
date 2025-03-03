@@ -1,6 +1,26 @@
 """
 This module provides functionality for managing conversational state, caching responses,
 and processing queries through a RAG (Retrieval Augmented Generation) pipeline.
+
+.. moduleauthor:: Team Indigo
+
+Classes
+-------
+LookupPlacesInput
+    Pydantic model for place lookup input validation.
+
+Functions
+---------
+lookup_place_info
+    Retrieves place information using Google Places API.
+extract_place_name
+    Extracts potential place names from user queries.
+store_place_info_in_vectorstore
+    Stores place information in the vector database.
+create_place_info_response
+    Creates responses incorporating place information.
+invoke_indybot
+    Invokes the chatbot with user input and configuration.
 """
 
 import re
