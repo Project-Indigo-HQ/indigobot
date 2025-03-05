@@ -23,40 +23,80 @@ invoke_indybot
     Invokes the chatbot with user input and configuration.
 """
 
-from langchain.tools.retriever import create_retriever_tool
-from langchain_core.tools import StructuredTool
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.prebuilt import create_react_agent
-from pydantic import BaseModel, Field
+import re
+import hashlib
+import sqlite3
+from typing import Dict, List, Optional, Union
 
-from indigobot.config import llm, vectorstore
-from indigobot.places_tool import PlacesLookupTool
+from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.schema import AIMessage, BaseMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import START, END, StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
+from typing_extensions import Annotated, TypedDict
+
+from indigobot.config import CACHE_DB, llm, vectorstore
+from indigobot.places_tool import places_tool
 
 chatbot_retriever = vectorstore.as_retriever()
 
 
-class LookupPlacesInput(BaseModel):
-    """Pydantic model for validating input to the lookup_place_info function.
+def get_cache_connection():
+    """Establishes a connection to the SQLite cache database and ensures the table exists."""
+    conn = sqlite3.connect(CACHE_DB)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS response_cache (
+            query_hash TEXT PRIMARY KEY,
+            response TEXT
+        )
+    """)
+    conn.commit()
+    return conn
 
-    :ivar user_input: User's original prompt to be processed by the lookup_place() function
-    :vartype user_input: str
+
+def hash_query(query: str) -> str:
+    """Generate a hash of the query for use as a cache key."""
+    return hashlib.sha256(query.encode()).hexdigest()
+
+
+def cache_response(query: str, response: str):
+    """Store a response in the cache."""
+    conn = get_cache_connection()
+    cursor = conn.cursor()
+    query_hash = hash_query(query)
+    cursor.execute("INSERT OR REPLACE INTO response_cache (query_hash, response) VALUES (?, ?)", 
+                  (query_hash, response))
+    conn.commit()
+    conn.close()
+
+def get_cached_response(query: str) -> str | None:
+    """Retrieve a cached response if available."""
+    conn = get_cache_connection()
+    cursor = conn.cursor()
+    query_hash = hash_query(query)
+    cursor.execute("SELECT response FROM response_cache WHERE query_hash = ?", (query_hash,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None
+
+class ChatState(TypedDict):
+    """Structure for maintaining chat state throughout the conversation."""
+    input: str
+    chat_history: Annotated[List[BaseMessage], add_messages]
+    context: str
+    answer: str
+
+
+def detect_place_query(state: ChatState) -> Union[str, List[str]]:
+    """
+    Detect if the user is asking about a place's hours or details.
+    Returns the next node to execute: either 'places_lookup' or END.
     """
 
-    user_input: str = Field(
-        ...,
-        description="User's original prompt to be processed by the lookup_place() function",
-    )
-
-
-def lookup_place_info(user_input: str) -> str:
-    """Look up place information using the Google Places API, load into store, and integrate it into the chat.
-
-    :param user_input: The user's query containing a potential place name
-    :type user_input: str
-    :return: A response incorporating the place information
-    :rtype: str
-    :raises Exception: If there's an error extracting the place name
-    """
     try:
         place_name = extract_place_name(user_input)
     except Exception as e:
@@ -93,35 +133,56 @@ def extract_place_name(place_input):
     extraction_prompt = f"""
     Extract the name of the place that the user is asking about from this conversation.
     Return just the name of the place without any explanation.
-    If no specific place name is mentioned, return 'NONE'. 
-    User question: {place_input}
+    If no specific place name is mentioned, return 'NONE'.
+    
+    User question: {state['input']}
+    AI response: {state['answer']}
     """
-
-    potential_name = llm.invoke(extraction_prompt)
-
+    
+    response = llm.invoke(extraction_prompt)
+    potential_name = response.content.strip() if hasattr(response, 'content') else response.strip()
+    
     if potential_name == "NONE":
-        return None
-
-    return potential_name
+        patterns = [
+            r"(where is|address of|location of|directions to) (the )?([A-Za-z0-9\s]+)",
+            r"(hours|schedule|when is) (the )?([A-Za-z0-9\s]+) (open|closed)",
+            r"([A-Za-z0-9\s]+?) (hours|address|phone|contact|website)",
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, state['input'], re.IGNORECASE)
+            if match:
+                groups = match.groups()
+                for group in groups:
+                    if group and len(group) > 3 and not any(word in group.lower() for word in ["the", "where", "when", "is", "are", "hours", "address"]):
+                        potential_name = group.strip()
+                        break
+    
+    if potential_name == "NONE" or len(potential_name) < 3:
+        words = state['input'].split()
+        nouns = [word for word in words if len(word) > 3 and word.lower() not in ["hours", "where", "when", "open", "closed", "address", "location", "directions"]]
+        if nouns:
+            potential_name = " ".join(nouns[-2:])
+    
+    if potential_name and potential_name != "NONE" and not ("portland" in potential_name.lower() or "or" in potential_name.lower()):
+        potential_name += " Portland"
+    
+    return potential_name if potential_name and potential_name != "NONE" else None
 
 
 def store_place_info_in_vectorstore(place_name: str, place_info: str) -> None:
-    """Store the place information in the vectorstore for future retrieval.
+    """Store the place information in the vectorstore for future retrieval"""
 
-    :param place_name: The name of the place
-    :type place_name: str
-    :param place_info: The information about the place to store
-    :type place_info: str
-    :return: None
-    """
     document_text = f"""Information about {place_name}: {place_info}"""
+
     vectorstore.add_texts(
         texts=[document_text],
-        metadatas=[{"source": "google_places_api", "place_name": place_name}],
+        metadatas=[{"source": "google_places_api", "place_name": place_name}]
     )
 
 
 def create_place_info_response(original_answer: str, place_info: str) -> str:
+
     """Create a new response incorporating the place information.
 
     :param original_answer: The initial response before place information was retrieved
@@ -131,41 +192,60 @@ def create_place_info_response(original_answer: str, place_info: str) -> str:
     :return: A new response incorporating the place information
     :rtype: str
     """
-
     response_prompt = f"""
-    The user asked about a place, and our initial response was: "{original_answer}".
-    We've now found this information from Google Places API: {place_info}.
-    Create a helpful response that provides the accurate information we found
-    and is limited to one sentence. If you don't have the info originally 
-    asked for, be sure to mention as much.
+    The user asked about a place, and our initial response was:
+    "{original_answer}"
+    
+    We've now found this information from Google Places API:
+    {place_info}
+    
+    Create a helpful response that:
+    1. Provides the accurate information
+    2. Is conversational and friendly
+    3. Is concise (maximum 3 sentences for the main information)
     """
-
+    
     new_response = llm.invoke(response_prompt)
+    return new_response.content.strip() if hasattr(new_response, 'content') else new_response.strip()
 
-    return new_response.content
-
-
-def invoke_indybot(input, thread_config):
-    """Streams the chatbot's response and returns the final content.
-
-    :param input: The user's input message
-    :type input: str
-    :param thread_config: Configuration for the chat thread
-    :type thread_config: dict
-    :return: The chatbot's response content or an error message
-    :rtype: str
-    :raises Exception: Catches and formats any exceptions that occur during invocation
-    """
+  
+def invoke_indybot(input_text, thread_config):
+    """Streams the chatbot's response and returns the final content."""
+    cached_response = get_cached_response(input_text)
+    if cached_response:
+        print("Returning cached response")
+        return cached_response
+        
     try:
+        initial_state = {
+            "input": input_text,
+            "chat_history": [],
+            "context": "",
+            "answer": ""
+        }
+        
         result = []
         for chunk in chatbot_app.stream(
-            {"messages": [("human", input)]},
+            initial_state,
             stream_mode="values",
             config=thread_config,
         ):
-            result.append(chunk["messages"][-1])
-
-        return result[-1].content
+            if "messages" in chunk and chunk["messages"]:
+                result.append(chunk["messages"][-1])
+            elif "answer" in chunk:
+                result.append(chunk["answer"])
+        
+        final_response = None
+        if result and hasattr(result[-1], 'content'):
+            final_response = result[-1].content
+        elif result and isinstance(result[-1], str):
+            final_response = result[-1]
+        else:
+            final_response = "Sorry, I couldn't process that request properly."
+            
+        cache_response(input_text, final_response)
+        
+        return final_response
     except Exception as e:
         return f"Error invoking indybot: {e}"
 

@@ -27,10 +27,12 @@ CRAWLER_DIR: Final[str] = os.path.join(CURRENT_DIR, "utils/jf_crawler")
 try:
     vectorstore = Chroma(
         persist_directory=CHROMA_DIR,
+        create_collection_if_not_exists=True,
         embedding_function=OpenAIEmbeddings(model="text-embedding-3-large"),
+        collection_name="indychroma",
     )
 except Exception as e:
-    print(f"Error initializing OpenAI vectorstore: {e}")
+    print(f"Error initializing vectorstore: {e}")
     raise
 
 # URLs for API endpoints that return JSON data
