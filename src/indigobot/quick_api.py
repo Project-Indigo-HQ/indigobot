@@ -28,12 +28,14 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from slowapi.responses import PlainTextResponse
 
 from indigobot.context import chatbot_app, invoke_indybot
 
 CHATWOOT_ACCESS_TOKEN = os.getenv("CHATWOOT_ACCESS_TOKEN")
 CHATWOOT_API_URL = os.getenv("CHATWOOT_API_URL", "https://your-chatwoot-instance.com")
 CHATWOOT_ACCOUNT_ID = os.getenv("CHATWOOT_ACCOUNT_ID")
+
 
 # Function to extract conversation ID from request
 def get_conversation_id(request: Request):
@@ -47,6 +49,7 @@ def get_conversation_id(request: Request):
         print(f"❌ Failed to get conversation ID: {e}")
         return "unknown"
 
+
 limiter = Limiter(key_func=get_conversation_id)
 
 
@@ -59,7 +62,9 @@ def send_message_to_chatwoot(conversation_id, message):
     payload = {"content": message, "message_type": "outgoing"}
 
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=5)  # ⏳ Add timeout (5 seconds)
+        response = requests.post(
+            url, json=payload, headers=headers, timeout=5
+        )  # ⏳ Add timeout (5 seconds)
         response.raise_for_status()  # Raise an error for bad status codes (4xx, 5xx)
 
         if response.status_code == 200:
@@ -73,7 +78,6 @@ def send_message_to_chatwoot(conversation_id, message):
         print(f"❌ Network error sending message: {e}")
 
 
-
 class QueryResponse(BaseModel):
     """Response model for the query endpoint.
 
@@ -81,11 +85,14 @@ class QueryResponse(BaseModel):
                   and retrieved context.
     :type answer: str
     """
+
     answer: str
+
     class Config:
         json_schema_extra = {
             "example": {"answer": "LLM agents are AI systems that can..."}
         }
+
 
 class Message(BaseModel):
     content: Optional[str]  # To capture the user's message
@@ -120,17 +127,22 @@ app.add_middleware(SlowAPIMiddleware)
 
 # Define API endpoints
 
+
 @app.exception_handler(RateLimitExceeded)
 async def ratelimit_handler(request: Request, exc: RateLimitExceeded):
     conversation_id = get_conversation_id(request)
 
     print(f"⛔ Rate limit exceeded for conversation: {get_conversation_id(request)}")
-    return PlainTextResponse("⛔ Rate limit exceeded. Try again later.", status_code=429)
+    return PlainTextResponse(
+        "⛔ Rate limit exceeded. Try again later.", status_code=429
+    )
 
 
 @app.post("/webhook", response_model=QueryResponse, summary="Webhook endpoint")
-@limiter.limit("10/minute")  #limit to 10 a minute
-async def webhook(request: Request, webhook_request:  WebhookRequest, authorization: str = Header(None)):
+@limiter.limit("10/minute")  # limit to 10 a minute
+async def webhook(
+    request: Request, webhook_request: WebhookRequest, authorization: str = Header(None)
+):
     """Webhook endpoint to receive messages from external services.
 
     The system performs the following steps:
@@ -147,13 +159,13 @@ async def webhook(request: Request, webhook_request:  WebhookRequest, authorizat
     try:
         print("Webhook triggered!")
         print("Received WebhookRequest:", request)
-        payload = await request.json()  
+        payload = await request.json()
         conversation_id = payload.get("id", "unknown")
 
         messages = payload.get("messages", [])
         content = messages[0].get("content", "")
         conversation_id = messages[0].get("conversation_id", "")
-        
+
         if not content:
             raise HTTPException(
                 status_code=400, detail="Message content cannot be empty"
@@ -181,6 +193,7 @@ async def webhook(request: Request, webhook_request:  WebhookRequest, authorizat
         raise HTTPException(
             status_code=500, detail=f"Error processing webhook: {str(e)}"
         )
+
 
 @app.get("/", summary="Health check", response_description="Basic server status")
 async def root():
