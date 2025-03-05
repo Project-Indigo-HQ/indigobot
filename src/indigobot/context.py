@@ -243,7 +243,7 @@ def invoke_indybot(input, thread_config):
     cached_response = get_cached_response(input)
     if cached_response:
         print("Returning cached response")
-        return cached_response  # Return cached response if available
+        return cached_response
 
     try:
         result = []
@@ -255,7 +255,7 @@ def invoke_indybot(input, thread_config):
             result.append(chunk["messages"][-1])
 
         response = result[-1].content
-        cache_response(input, response)  # Store new response in cache
+        cache_response(input, response)
         return response
     except Exception as e:
         return f"Error invoking indybot: {e}"
