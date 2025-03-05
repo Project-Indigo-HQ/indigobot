@@ -37,10 +37,9 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel, Field
 
-from indigobot.config import llm, vectorstore
+from indigobot.config import llm, vectorstore, CACHE_DB
 from indigobot.places_tool import PlacesLookupTool
 import sqlite3, hashlib
-from indigobot.config import CACHE_DB
 
 chatbot_retriever = vectorstore.as_retriever()
 
