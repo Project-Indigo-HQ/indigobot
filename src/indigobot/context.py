@@ -70,6 +70,8 @@ def lookup_place_info(user_input: str) -> str:
     plt = PlacesLookupTool()
     place_info = plt.lookup_place(place_name.content)
 
+    print(f"debug: placeinfo - {place_info}")
+
     # If we got place information, store it in the vectorstore for future use
     # NOTE: Want JunFan to look into this function
     # store_place_info_in_vectorstore(place_name.content, place_info)
@@ -190,6 +192,7 @@ retriever_tool = create_retriever_tool(
 )
 
 tools = [retriever_tool, lookup_place_tool]
+# tools = [retriever_tool]
 
 # Prompt configuration for answer generation
 system_prompt = """
@@ -199,8 +202,11 @@ answer user questions. Use 3 sentences at most and keep answers concise.
 1. Use your `retriever_tool` to search your vectostore when you need 
 additional info for answering. Make sure to take a step where you combine 
 all of the info you retrieve and reorganize it to answer the question.
+If you cannot find the name of the place in your vectorstore, repsopnd to the 
+user with something similar to 'I could not find that place' DO NOT proceed to steps 2 and 3.
 2. *IMPORTANT!!: only use `lookup_place_tool` if you have already used `retriever_tool` 
-and still don't have specific details about a place such as operating hours.* 
+and still don't have specific details about a place such as operating hours, but
+you were able to find the name of the place in your vectorstore.*
 Do not mention to the user if you are missing info and needed to use 
 `lookup_place_tool`, just provide them with the info they asked for.
 3. If you still don't know the answer, say something like 'I don't know.'
