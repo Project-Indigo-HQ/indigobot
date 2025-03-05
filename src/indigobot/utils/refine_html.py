@@ -97,7 +97,6 @@ def parse_and_save(file_path):
     try:
         with open(json_path, "w", encoding="utf-8") as json_file:
             json.dump(data, json_file, indent=4)
-        print(f"Extracted data saved to {json_path}")
     except Exception as e:
         print(f"Error saving JSON to {json_path}: {e}")
 

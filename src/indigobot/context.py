@@ -58,8 +58,6 @@ def lookup_place_info(user_input: str) -> str:
     :raises Exception: If there's an error extracting the place name
     """
 
-    print("debug: lookup_place_info called")
-
     # Extract potential place name from the user query or model answer
     try:
         place_name = extract_place_name(user_input)
@@ -69,8 +67,6 @@ def lookup_place_info(user_input: str) -> str:
     # Look up the place using the Places tool
     plt = PlacesLookupTool()
     place_info = plt.lookup_place(place_name.content)
-
-    print(f"debug: placeinfo - {place_info}")
 
     # If we got place information, store it in the vectorstore for future use
     # NOTE: Want JunFan to look into this function

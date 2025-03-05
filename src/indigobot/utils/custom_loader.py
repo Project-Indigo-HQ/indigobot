@@ -204,11 +204,8 @@ def jf_loader():
         # Load the content into vectorstore database
         os.makedirs(JSON_DOCS_DIR, exist_ok=True)
         json_docs = load_JSON_files(JSON_DOCS_DIR)
-        print(f"Loaded {len(json_docs)} documents.")
 
         load_docs(json_docs)
-    else:
-        print("no new URLs...")
 
 
 def start_loader():
