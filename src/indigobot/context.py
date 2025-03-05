@@ -57,22 +57,16 @@ def lookup_place_info(user_input: str) -> str:
     :rtype: str
     :raises Exception: If there's an error extracting the place name
     """
-
-    # Extract potential place name from the user query or model answer
     try:
         place_name = extract_place_name(user_input)
     except Exception as e:
         print(f"Error in extract_place_name: {e}")
 
-    # Look up the place using the Places tool
     plt = PlacesLookupTool()
     place_info = plt.lookup_place(place_name.content)
 
-    # If we got place information, store it in the vectorstore for future use
-    # NOTE: Want JunFan to look into this function
-    # store_place_info_in_vectorstore(place_name.content, place_info)
+    store_place_info_in_vectorstore(place_name.content, place_info)
 
-    # Create a new response that incorporates the place information
     improved_answer = create_place_info_response(user_input, place_info)
     return improved_answer
 
@@ -96,7 +90,6 @@ def extract_place_name(place_input):
     :rtype: object
     """
 
-    # Create a prompt to extract the place name
     extraction_prompt = f"""
     Extract the name of the place that the user is asking about from this conversation.
     Return just the name of the place without any explanation.
@@ -121,10 +114,7 @@ def store_place_info_in_vectorstore(place_name: str, place_info: str) -> None:
     :type place_info: str
     :return: None
     """
-
-    # Format the place info as a document for the vectorstore
     document_text = f"""Information about {place_name}: {place_info}"""
-    # Add to vectorstore
     vectorstore.add_texts(
         texts=[document_text],
         metadatas=[{"source": "google_places_api", "place_name": place_name}],
@@ -142,7 +132,6 @@ def create_place_info_response(original_answer: str, place_info: str) -> str:
     :rtype: str
     """
 
-    # Create a prompt to generate a new response
     response_prompt = f"""
     The user asked about a place, and our initial response was: "{original_answer}".
     We've now found this information from Google Places API: {place_info}.
@@ -188,9 +177,7 @@ retriever_tool = create_retriever_tool(
 )
 
 tools = [retriever_tool, lookup_place_tool]
-# tools = [retriever_tool]
 
-# Prompt configuration for answer generation
 system_prompt = """
 You are a cheerful assistant that answers questions/provides information about 
 social services in Portland, Oregon. Use pieces of retrieved context to 

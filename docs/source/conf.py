@@ -50,6 +50,7 @@ html_theme_options = {
 # Set environment variable to indicate documentation build
 os.environ["SPHINX_BUILD"] = "1"
 
+
 # Mock modules that might not be available during documentation build
 class Mock(MagicMock):
     @classmethod
@@ -63,33 +64,59 @@ class Mock(MagicMock):
 # Create more comprehensive mocking
 MOCK_MODULES = [
     # Base langchain modules
-    "langchain", "langchain.tools", "langchain.tools.retriever", "langchain.schema",
-    "langchain.text_splitter", "langchain.chains", "langchain.chains.combine_documents",
-    
+    "langchain",
+    "langchain.tools",
+    "langchain.tools.retriever",
+    "langchain.schema",
+    "langchain.text_splitter",
+    "langchain.chains",
+    "langchain.chains.combine_documents",
     # Langchain core modules
-    "langchain_core", "langchain_core.document_loaders", "langchain_core.documents",
-    "langchain_core.embeddings", "langchain_core.vectorstores", "langchain_core.callbacks",
-    "langchain_core.prompts", "langchain_core.runnables", "langchain_core.language_models",
-    "langchain_core.messages", "langchain_core.output_parsers",
-    
+    "langchain_core",
+    "langchain_core.document_loaders",
+    "langchain_core.documents",
+    "langchain_core.embeddings",
+    "langchain_core.vectorstores",
+    "langchain_core.callbacks",
+    "langchain_core.prompts",
+    "langchain_core.runnables",
+    "langchain_core.language_models",
+    "langchain_core.messages",
+    "langchain_core.output_parsers",
     # Langchain community modules
-    "langchain_community", "langchain_community.document_loaders",
+    "langchain_community",
+    "langchain_community.document_loaders",
     "langchain_community.document_loaders.recursive_url_loader",
-    
     # Other langchain packages
-    "langchain_openai", "langchain_chroma", "langchain_text_splitters",
-    "langchain_google_community", "langchain_google_community.bigquery",
-    
+    "langchain_openai",
+    "langchain_chroma",
+    "langchain_text_splitters",
+    "langchain_google_community",
+    "langchain_google_community.bigquery",
     # External dependencies
-    "langgraph", "langgraph.graph", "langgraph.checkpoint",
-    "fastapi", "fastapi.responses", "uvicorn", 
-    "pydantic", "pydantic.main", "pydantic.BaseModel",
-    "bs4", "googlemaps", "unidecode",
-    
+    "langgraph",
+    "langgraph.graph",
+    "langgraph.checkpoint",
+    "fastapi",
+    "fastapi.responses",
+    "uvicorn",
+    "pydantic",
+    "pydantic.main",
+    "pydantic.BaseModel",
+    "bs4",
+    "googlemaps",
+    "unidecode",
     # Project modules
-    "indigobot.config", "indigobot.context", "indigobot.places_tool", "indigobot.quick_api",
-    "indigobot.utils", "indigobot.utils.custom_loader", "indigobot.utils.jf_crawler",
-    "indigobot.utils.redundancy_check", "indigobot.utils.refine_html", "indigobot.utils.test_data_check"
+    "indigobot.config",
+    "indigobot.context",
+    "indigobot.places_tool",
+    "indigobot.quick_api",
+    "indigobot.utils",
+    "indigobot.utils.custom_loader",
+    "indigobot.utils.jf_crawler",
+    "indigobot.utils.redundancy_check",
+    "indigobot.utils.refine_html",
+    "indigobot.utils.test_data_check",
 ]
 
 # Update all mock modules

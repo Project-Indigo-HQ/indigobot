@@ -4,8 +4,9 @@ Pytest configuration file for IndigoBot tests.
 This file contains fixtures and configuration for pytest to use when running tests.
 """
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 
 @pytest.fixture

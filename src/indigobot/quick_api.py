@@ -12,24 +12,18 @@ The API uses FastAPI for HTTP handling and Pydantic for request/response validat
 
 import json
 import os
-from typing import Dict, List, Optional, Sequence
-import asyncio
+from typing import List, Optional
 
 import requests
 import uvicorn
 from fastapi import FastAPI, Header, HTTPException, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
-from langchain_core.messages import BaseMessage
-from langgraph.graph.message import add_messages
-from pydantic import BaseModel, Field, ValidationError
-from typing_extensions import Annotated
-
+from fastapi.responses import PlainTextResponse
+from pydantic import BaseModel
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from indigobot.context import chatbot_app, invoke_indybot
+from indigobot.context import invoke_indybot
 
 CHATWOOT_ACCESS_TOKEN = os.getenv("CHATWOOT_ACCESS_TOKEN")
 CHATWOOT_API_URL = os.getenv("CHATWOOT_API_URL", "https://your-chatwoot-instance.com")
