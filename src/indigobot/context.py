@@ -11,6 +11,14 @@ LookupPlacesInput
 
 Functions
 ---------
+get_cache_connection
+    Establishes a connection to the SQLite cache database and ensures the table exists.
+hash_query
+    Generate a hash of the query for use as a cache key.
+cache_response
+    Store a response in the cache.
+get_cached_response
+    Retrieve a cached response if available.
 lookup_place_info
     Retrieves place information using Google Places API.
 extract_place_name
@@ -31,9 +39,85 @@ from pydantic import BaseModel, Field
 
 from indigobot.config import llm, vectorstore
 from indigobot.places_tool import PlacesLookupTool
+import sqlite3, hashlib
+from indigobot.config import CACHE_DB
 
 chatbot_retriever = vectorstore.as_retriever()
 
+def get_cache_connection():
+    """Establish a connection to the SQLite cache database and ensure the cache table exists.
+
+    This function connects to the SQLite database specified by `CACHE_DB` and creates
+    a table `response_cache` if it does not already exist. The table stores hashed
+    queries as keys and their corresponding responses.
+
+    :return: A connection object to the SQLite database.
+    :rtype: sqlite3.Connection
+    """
+    conn = sqlite3.connect(CACHE_DB)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS response_cache (
+            query_hash TEXT PRIMARY KEY,
+            response TEXT
+        )
+    """)
+    conn.commit()
+    return conn
+
+
+def hash_query(query: str) -> str:
+    """Generate a SHA-256 hash of the query string for use as a cache key.
+
+    This function ensures that identical queries produce the same hash, allowing for
+    efficient lookups in the cache.
+
+    :param query: The input query string to be hashed.
+    :type query: str
+    :return: The SHA-256 hash of the query.
+    :rtype: str
+    """
+    return hashlib.sha256(query.encode()).hexdigest()
+
+
+def cache_response(query: str, response: str):
+    """Store a query-response pair in the cache.
+
+    This function hashes the query and stores it alongside the response in the
+    SQLite cache database. If a response for the query already exists, it is replaced.
+
+    :param query: The original user query.
+    :type query: str
+    :param response: The response to be stored in the cache.
+    :type response: str
+    """
+    conn = get_cache_connection()
+    cursor = conn.cursor()
+    query_hash = hash_query(query)
+    cursor.execute("INSERT OR REPLACE INTO response_cache (query_hash, response) VALUES (?, ?)", 
+                   (query_hash, response))
+    conn.commit()
+    conn.close()
+
+
+def get_cached_response(query: str) -> str | None:
+    """Retrieve a cached response for a given query if available.
+
+    This function checks the SQLite cache database for a previously stored response
+    corresponding to the hashed query.
+
+    :param query: The original user query.
+    :type query: str
+    :return: The cached response if found, otherwise None.
+    :rtype: str | None
+    """
+    conn = get_cache_connection()
+    cursor = conn.cursor()
+    query_hash = hash_query(query)
+    cursor.execute("SELECT response FROM response_cache WHERE query_hash = ?", (query_hash,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None
 
 class LookupPlacesInput(BaseModel):
     """Pydantic model for validating input to the lookup_place_info function.
@@ -156,6 +240,11 @@ def invoke_indybot(input, thread_config):
     :rtype: str
     :raises Exception: Catches and formats any exceptions that occur during invocation
     """
+    cached_response = get_cached_response(input)
+    if cached_response:
+        print("Returning cached response")
+        return cached_response  # Return cached response if available
+
     try:
         result = []
         for chunk in chatbot_app.stream(
@@ -165,10 +254,11 @@ def invoke_indybot(input, thread_config):
         ):
             result.append(chunk["messages"][-1])
 
-        return result[-1].content
+        response = result[-1].content
+        cache_response(input, response)  # Store new response in cache
+        return response
     except Exception as e:
         return f"Error invoking indybot: {e}"
-
 
 retriever_tool = create_retriever_tool(
     chatbot_retriever,
