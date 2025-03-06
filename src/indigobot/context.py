@@ -43,8 +43,7 @@ import sqlite3, hashlib
 
 chatbot_retriever = vectorstore.as_retriever()
 
-# Number of times a query needs to be entered before caching
-CACHE_THRESHOLD = 1
+CACHE_THRESHOLD = 3
 
 def get_cache_connection():
     """Establish a connection to the SQLite cache database and ensure the cache table exists.
@@ -102,7 +101,6 @@ def cache_response(query: str, response: str):
     result = cursor.fetchone()
 
     if result and result[0] >= CACHE_THRESHOLD:
-        # Only cache if query count meets or exceeds threshold
         cursor.execute("UPDATE response_cache SET response = ? WHERE query_hash = ?", (response, query_hash))
         conn.commit()
 
@@ -130,15 +128,13 @@ def get_cached_response(query: str) -> str | None:
     if result:
         response, count = result
         if count < CACHE_THRESHOLD:
-            # Increment query count
             cursor.execute("UPDATE response_cache SET query_count = query_count + 1 WHERE query_hash = ?", (query_hash,))
             conn.commit()
             conn.close()
-            return None  # Don't return cached response yet
+            return None
         conn.close()
         return response
 
-    # If query is not found, initialize count
     cursor.execute("INSERT INTO response_cache (query_hash, response, query_count) VALUES (?, ?, ?)",
                    (query_hash, None, 1))
     conn.commit()
