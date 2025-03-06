@@ -22,9 +22,9 @@ from indigobot.config import (
     url_list,
     vectorstore,
 )
-from indigobot.utils.jf_crawler import crawl
-from indigobot.utils.redundancy_check import check_duplicate
-from indigobot.utils.refine_html import load_JSON_files, refine_text
+from indigobot.utils.etl.jf_crawler import crawl
+from indigobot.utils.etl.redundancy_check import check_duplicate
+from indigobot.utils.etl.refine_html import load_JSON_files, refine_text
 
 chunk_size = 512
 chunk_overlap = 10
@@ -204,11 +204,8 @@ def jf_loader():
         # Load the content into vectorstore database
         os.makedirs(JSON_DOCS_DIR, exist_ok=True)
         json_docs = load_JSON_files(JSON_DOCS_DIR)
-        print(f"Loaded {len(json_docs)} documents.")
 
         load_docs(json_docs)
-    else:
-        print("no new URLs...")
 
 
 def start_loader():

@@ -55,10 +55,10 @@ cls_url_list: List[str] = [
 
 # Sitemap URLs
 sitemaps: List[str] = [
-    "https://centralcityconcern.org/housing-sitemap.xml",
-    "https://centralcityconcern.org/healthcare-sitemap.xml",
-    "https://centralcityconcern.org/recovery-sitemap.xml",
-    "https://centralcityconcern.org/jobs-sitemap.xml",
+    # "https://centralcityconcern.org/housing-sitemap.xml",
+    # "https://centralcityconcern.org/healthcare-sitemap.xml",
+    # "https://centralcityconcern.org/recovery-sitemap.xml",
+    # "https://centralcityconcern.org/jobs-sitemap.xml",
 ]
 
 # A series of URLs for test

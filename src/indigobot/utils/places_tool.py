@@ -1,5 +1,5 @@
 """
-This module provides tools for looking up place information using the Google Places API.
+This module provides tools for looking up place supplementary information using the Google Places API.
 
 .. moduleauthor:: Team Indigo
 
@@ -7,6 +7,19 @@ Classes
 -------
 PlacesLookupTool
     A tool for retrieving and formatting place information from Google Places API.
+LookupPlacesInput
+    Pydantic model for validating input to the lookup_place_info function.
+
+Functions
+---------
+lookup_place_info
+    Retrieves place information using Google Places API.
+extract_place_name
+    Extracts potential place names from user queries.
+store_place_info_in_vectorstore
+    Stores place information in the vector database.
+create_place_info_response
+    Creates responses incorporating place information.
 """
 
 import os
@@ -14,7 +27,11 @@ from datetime import datetime, time
 from typing import Any, Dict
 
 import pytz
+from langchain_core.tools import StructuredTool
 from langchain_google_community import GooglePlacesTool
+from pydantic import BaseModel, Field
+
+from indigobot.config import llm, vectorstore
 
 
 class PlacesLookupTool:
@@ -119,7 +136,7 @@ class PlacesLookupTool:
 
         except Exception as e:
             return f"Hours unknown (Error: {str(e)})"
-          
+
     def _format_hours_section(self, place_data: Dict[str, Any]) -> str:
         """Format the hours section of place details.
 
@@ -170,7 +187,7 @@ class PlacesLookupTool:
             sections.append(hours_section)
 
         return "\n".join(sections)
-      
+
     def lookup_place(self, query: str) -> str:
         """Look up details for a place using Google Places API.
 
@@ -239,3 +256,113 @@ class PlacesLookupTool:
 
         except Exception as e:
             return f"Error fetching place details: {str(e)}"
+
+
+class LookupPlacesInput(BaseModel):
+    """Pydantic model for validating input to the lookup_place_info function.
+
+    :ivar user_input: User's original prompt to be processed by the lookup_place() function
+    :vartype user_input: str
+    """
+
+    user_input: str = Field(
+        ...,
+        description="User's original prompt to be processed by the lookup_place() function",
+    )
+
+
+def extract_place_name(place_input):
+    """Extract potential place name from user query or model response.
+
+    :param place_input: The text from which to extract a place name
+    :type place_input: str
+    :return: The language model response containing the extracted place name,
+             or None if no place name is found
+    :rtype: object
+    """
+
+    extraction_prompt = f"""
+    Extract the name of the place that the user is asking about from this conversation.
+    Return just the name of the place without any explanation.
+    If no specific place name is mentioned, return 'NONE'. 
+    User question: {place_input}
+    """
+
+    potential_name = llm.invoke(extraction_prompt)
+
+    if potential_name == "NONE":
+        return None
+
+    return potential_name
+
+
+def store_place_info_in_vectorstore(place_name: str, place_info: str) -> None:
+    """Store the place information in the vectorstore for future retrieval.
+
+    :param place_name: The name of the place
+    :type place_name: str
+    :param place_info: The information about the place to store
+    :type place_info: str
+    :return: None
+    """
+    document_text = f"""Information about {place_name}: {place_info}"""
+    vectorstore.add_texts(
+        texts=[document_text],
+        metadatas=[{"source": "google_places_api", "place_name": place_name}],
+    )
+
+
+def create_place_info_response(original_answer: str, place_info: str) -> str:
+    """Create a new response incorporating the place information.
+
+    :param original_answer: The initial response before place information was retrieved
+    :type original_answer: str
+    :param place_info: The information about the place retrieved from the API
+    :type place_info: str
+    :return: A new response incorporating the place information
+    :rtype: str
+    """
+
+    response_prompt = f"""
+    The user asked about a place, and our initial response was: "{original_answer}".
+    We've now found this information from Google Places API: {place_info}.
+    Create a helpful response that provides the accurate information we found
+    and is limited to one sentence. If you don't have the info originally 
+    asked for, be sure to mention as much.
+    """
+
+    new_response = llm.invoke(response_prompt)
+
+    return new_response.content
+
+
+def lookup_place_info(user_input: str) -> str:
+    """Look up place information using the Google Places API, load into store, and integrate it into the chat.
+
+    :param user_input: The user's query containing a potential place name
+    :type user_input: str
+    :return: A response incorporating the place information
+    :rtype: str
+    :raises Exception: If there's an error extracting the place name
+    """
+    try:
+        place_name = extract_place_name(user_input)
+    except Exception as e:
+        print(f"Error in extract_place_name: {e}")
+
+    plt = PlacesLookupTool()
+    place_info = plt.lookup_place(place_name.content)
+
+    store_place_info_in_vectorstore(place_name.content, place_info)
+
+    improved_answer = create_place_info_response(user_input, place_info)
+    return improved_answer
+
+
+lookup_place_tool = StructuredTool.from_function(
+    func=lookup_place_info,
+    name="lookup_place_tool",
+    description="Use this tool to fill in missing prompt/query knowledge with a Google Places API call.",
+    return_direct=True,
+    args_schema=LookupPlacesInput,
+)

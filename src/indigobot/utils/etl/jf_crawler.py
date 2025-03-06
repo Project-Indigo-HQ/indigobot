@@ -16,7 +16,7 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
 from indigobot.config import CRAWL_TEMP, HTML_DIR, sitemaps
-from indigobot.utils.redundancy_check import check_duplicate
+from indigobot.utils.etl.redundancy_check import check_duplicate
 
 
 def start_session():
@@ -136,7 +136,6 @@ def download_and_save_html(urls, session):
                     os.path.join(HTML_DIR, filename), "w", encoding="utf-8"
                 ) as file:
                     file.write(response.text)
-                    print(f"Save html content to {HTML_DIR}")
             except Exception as e:
                 print(f"Error extracting html: {e}")
         else:
@@ -157,11 +156,6 @@ def parse_url_and_save(sitemap_url, target_file_name, session):
     :raises Exception: If sitemap fetching or parsing fails
     """
     urls = extract_xml(fetch_xml(sitemap_url, session))
-
-    # Output all housing URLs
-    print("Extracted Housing URLs:")
-    for url in urls:
-        print(url)
 
     # Ensure 'urls' directory exists
     extracted_urls = os.path.join(CRAWL_TEMP, "extracted_urls")
@@ -190,10 +184,7 @@ def parse_url(sitemap_url, session):
     urls = []
     page_content = extract_xml(fetch_xml(sitemap_url, session))
 
-    # Display all  URLs
-    print("Extracting URLs:")
     for url in page_content:
-        print(url)
         urls.append(url)
 
     return urls
@@ -221,7 +212,6 @@ def crawl():
         # Download all resource page as html
         download_and_save_html(url_list, session)
 
-        print("\nThe crawler is finished")
         return True
 
     else:
