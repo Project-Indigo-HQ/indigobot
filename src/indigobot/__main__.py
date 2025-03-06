@@ -8,7 +8,7 @@ import threading
 from indigobot.context import invoke_indybot
 
 # from indigobot.quick_api import start_api
-from indigobot.utils.custom_loader import start_loader
+from indigobot.utils.etl.custom_loader import start_loader
 
 
 def main() -> None:
