@@ -43,6 +43,9 @@ import sqlite3, hashlib
 
 chatbot_retriever = vectorstore.as_retriever()
 
+# Number of times a query needs to be entered before caching
+CACHE_THRESHOLD = 1
+
 def get_cache_connection():
     """Establish a connection to the SQLite cache database and ensure the cache table exists.
 
@@ -58,7 +61,8 @@ def get_cache_connection():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS response_cache (
             query_hash TEXT PRIMARY KEY,
-            response TEXT
+            response TEXT,
+            query_count INTEGER DEFAULT 0
         )
     """)
     conn.commit()
@@ -93,17 +97,23 @@ def cache_response(query: str, response: str):
     conn = get_cache_connection()
     cursor = conn.cursor()
     query_hash = hash_query(query)
-    cursor.execute("INSERT OR REPLACE INTO response_cache (query_hash, response) VALUES (?, ?)", 
-                   (query_hash, response))
-    conn.commit()
+
+    cursor.execute("SELECT query_count FROM response_cache WHERE query_hash = ?", (query_hash,))
+    result = cursor.fetchone()
+
+    if result and result[0] >= CACHE_THRESHOLD:
+        # Only cache if query count meets or exceeds threshold
+        cursor.execute("UPDATE response_cache SET response = ? WHERE query_hash = ?", (response, query_hash))
+        conn.commit()
+
     conn.close()
 
 
 def get_cached_response(query: str) -> str | None:
     """Retrieve a cached response for a given query if available.
 
-    This function checks the SQLite cache database for a previously stored response
-    corresponding to the hashed query.
+    If the query exists but hasn't reached the `CACHE_THRESHOLD`, it increments the count.
+    Once the count reaches the threshold, the response is cached.
 
     :param query: The original user query.
     :type query: str
@@ -113,10 +123,27 @@ def get_cached_response(query: str) -> str | None:
     conn = get_cache_connection()
     cursor = conn.cursor()
     query_hash = hash_query(query)
-    cursor.execute("SELECT response FROM response_cache WHERE query_hash = ?", (query_hash,))
+
+    cursor.execute("SELECT response, query_count FROM response_cache WHERE query_hash = ?", (query_hash,))
     result = cursor.fetchone()
+
+    if result:
+        response, count = result
+        if count < CACHE_THRESHOLD:
+            # Increment query count
+            cursor.execute("UPDATE response_cache SET query_count = query_count + 1 WHERE query_hash = ?", (query_hash,))
+            conn.commit()
+            conn.close()
+            return None  # Don't return cached response yet
+        conn.close()
+        return response
+
+    # If query is not found, initialize count
+    cursor.execute("INSERT INTO response_cache (query_hash, response, query_count) VALUES (?, ?, ?)",
+                   (query_hash, None, 1))
+    conn.commit()
     conn.close()
-    return result[0] if result else None
+    return None
 
 class LookupPlacesInput(BaseModel):
     """Pydantic model for validating input to the lookup_place_info function.
