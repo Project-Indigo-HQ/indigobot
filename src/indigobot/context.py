@@ -1,45 +1,22 @@
 """
-This module provides functionality for managing conversational state, caching responses,
-and processing queries through a RAG (Retrieval Augmented Generation) pipeline.
+This initializes the program's main ReAct conversational agent with tools and
+capabilities for caching and information retrieval.
 
 .. moduleauthor:: Team Indigo
 
-Classes
--------
-LookupPlacesInput
-    Pydantic model for place lookup input validation.
-
 Functions
 ---------
-get_cache_connection
-    Establishes a connection to the SQLite cache database and ensures the table exists.
-hash_query
-    Generate a hash of the query for use as a cache key.
-cache_response
-    Store a response in the cache.
-get_cached_response
-    Retrieve a cached response if available.
-lookup_place_info
-    Retrieves place information using Google Places API.
-extract_place_name
-    Extracts potential place names from user queries.
-store_place_info_in_vectorstore
-    Stores place information in the vector database.
-create_place_info_response
-    Creates responses incorporating place information.
 invoke_indybot
     Invokes the chatbot with user input and configuration.
 """
 
 from langchain.tools.retriever import create_retriever_tool
-from langchain_core.tools import StructuredTool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
-from pydantic import BaseModel, Field
 
-from indigobot.config import llm, vectorstore, CACHE_DB
-from indigobot.places_tool import PlacesLookupTool
-import sqlite3, hashlib
+from indigobot.config import llm, vectorstore
+from indigobot.utils.caching import cache_response, get_cached_response
+from indigobot.utils.places_tool import lookup_place_tool
 
 chatbot_retriever = vectorstore.as_retriever()
 
@@ -279,8 +256,10 @@ def invoke_indybot(input, thread_config):
         response = result[-1].content
         cache_response(input, response)
         return response
+
     except Exception as e:
         return f"Error invoking indybot: {e}"
+
 
 retriever_tool = create_retriever_tool(
     chatbot_retriever,
@@ -291,10 +270,11 @@ retriever_tool = create_retriever_tool(
 tools = [retriever_tool, lookup_place_tool]
 
 system_prompt = """
-You are a cheerful assistant that answers questions/provides information about 
-social services in Portland, Oregon. Use pieces of retrieved context to 
-answer user questions. Use 3 sentences at most and keep answers concise.
-1. Use your `retriever_tool` to search your vectostore when you need 
+You are a cheerful assistant and your job is to answer questions/provide 
+information about social services in Portland, Oregon. Use pieces of 
+retrieved context to answer user questions. Use 3 sentences at most and 
+keep answers concise. Do not answer questions that don't have to do with your job.
+1. Use your `retriever_tool` to search your vectorstore when you need 
 additional info for answering. Make sure to take a step where you combine 
 all of the info you retrieve and reorganize it to answer the question.
 If you cannot find the name of the place in your vectorstore, repsopnd to the 

@@ -6,12 +6,10 @@ for retrieving and formatting place information.
 """
 
 import unittest
-from datetime import datetime, time
+from datetime import time
 from unittest.mock import MagicMock, patch
 
-import pytz
-
-from indigobot.places_tool import PlacesLookupTool
+from indigobot.utils.places_tool import PlacesLookupTool
 
 
 class TestPlacesLookupTool(unittest.TestCase):

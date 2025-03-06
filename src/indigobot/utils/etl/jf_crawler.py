@@ -16,7 +16,7 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
 from indigobot.config import CRAWL_TEMP, HTML_DIR, sitemaps
-from indigobot.utils.redundancy_check import check_duplicate
+from indigobot.utils.etl.redundancy_check import check_duplicate
 
 
 def start_session():
