@@ -1,5 +1,7 @@
 # Chatbot for Social Services
 
+## This branch (docs) is the source for project's Read the Docs 
+
 **Portland State University | Computer Science capstone project | FW24: Sept 2024 - March 2025**
 
 ## Install
