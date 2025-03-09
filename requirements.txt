@@ -19,15 +19,9 @@ pylama[all]
 pylama[toml]
 pytest
 pytz
-pyyaml
 requests
 setuptools
 setuptools-scm
 slowapi
-sphinx
-sphinx-copybutton
-sphinx-rtd-theme
-sphinx-autodoc-typehints
-types-pyyaml
 unidecode
 uvicorn
