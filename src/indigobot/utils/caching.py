@@ -16,7 +16,7 @@ import sqlite3
 
 from indigobot.config import CACHE_DB
 
-CACHE_THRESHOLD = 3
+CACHE_THRESHOLD = 2
 
 
 def get_cache_connection():
