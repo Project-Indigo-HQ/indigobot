@@ -1,13 +1,6 @@
 """
 This initializes the program's main ReAct conversational agent with tools and
 capabilities for caching and information retrieval.
-
-.. moduleauthor:: Team Indigo
-
-Functions
----------
-invoke_indybot
-    Invokes the chatbot with user input and configuration.
 """
 
 from langchain.tools.retriever import create_retriever_tool

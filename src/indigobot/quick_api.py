@@ -1,13 +1,7 @@
 """
-FastAPI-based REST API for RAG (Retrieval-Augmented Generation) operations.
-
-This module provides a REST API interface for:
-- Querying the RAG system with questions
-- Webhook endpoint for external service integration
-- Health check endpoint
-- Listing available document sources
-
-The API uses FastAPI for HTTP handling and Pydantic for request/response validation.
+This module provides a FastAPI-based REST API interface for querying the RAG system
+with questions, webhook endpoint for external service integration, health check
+endpoint, and listing available document sources.
 """
 
 import json
@@ -30,8 +24,14 @@ CHATWOOT_API_URL = os.getenv("CHATWOOT_API_URL", "https://your-chatwoot-instance
 CHATWOOT_ACCOUNT_ID = os.getenv("CHATWOOT_ACCOUNT_ID")
 
 
-# Function to extract conversation ID from request
 def get_conversation_id(request: Request):
+    """Extract conversation ID from the request for rate limiting purposes.
+
+    :param request: The FastAPI request object
+    :type request: Request
+    :return: The conversation ID string or "unknown" if not found
+    :rtype: str
+    """
     try:
         body = request.scope.get("body", b"").decode("utf-8")  # Get raw body
         payload = json.loads(body) if body else {}  # Parse JSON if available
@@ -43,10 +43,21 @@ def get_conversation_id(request: Request):
         return "unknown"
 
 
+# Initialize rate limiter using conversation ID as the key
 limiter = Limiter(key_func=get_conversation_id)
 
 
 def send_message_to_chatwoot(conversation_id, message):
+    """Send a message back to Chatwoot via their API.
+
+    :param conversation_id: The Chatwoot conversation identifier
+    :type conversation_id: str
+    :param message: The message content to send
+    :type message: str
+    :return: None
+    :raises requests.Timeout: If the API request times out (after 5 seconds)
+    :raises requests.RequestException: If there's a network error
+    """
     url = f"{CHATWOOT_API_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}/conversations/{conversation_id}/messages"
     headers = {
         "api_access_token": CHATWOOT_ACCESS_TOKEN,
@@ -88,6 +99,12 @@ class QueryResponse(BaseModel):
 
 
 class Message(BaseModel):
+    """Model representing a message in the Chatwoot webhook payload.
+
+    :param content: The text content of the message
+    :type content: Optional[str]
+    """
+
     content: Optional[str]  # To capture the user's message
 
 
@@ -123,6 +140,16 @@ app.add_middleware(SlowAPIMiddleware)
 
 @app.exception_handler(RateLimitExceeded)
 async def ratelimit_handler(request: Request, exc: RateLimitExceeded):
+    """Exception handler for rate limit exceeded errors.
+    Logs the rate limit violation and returns a 429 response.
+
+    :param request: The FastAPI request object
+    :type request: Request
+    :param exc: The rate limit exception
+    :type exc: RateLimitExceeded
+    :return: Plain text response with 429 status code
+    :rtype: PlainTextResponse
+    """
     conversation_id = get_conversation_id(request)
 
     print(f"⛔ Rate limit exceeded for conversation: {get_conversation_id(request)}")
@@ -137,11 +164,6 @@ async def webhook(
     request: Request, webhook_request: WebhookRequest, authorization: str = Header(None)
 ):
     """Webhook endpoint to receive messages from external services.
-
-    The system performs the following steps:
-    1. Process the incoming webhook message
-    2. Generate a response using the RAG system
-    3. Return the response
 
     :param request: The webhook request containing the message
     :type request: WebhookRequest
@@ -204,13 +226,6 @@ async def root():
 
 def start_api():
     """Start the FastAPI server with Uvicorn.
-
-    Configures the server with the following settings:
-        - Listens on all network interfaces (0.0.0.0)
-        - Uses port from PORT environment variable (default: 8000)
-        - Enables auto-reload for development
-        - Enables access logging
-
     Prints server URL and configuration information to console.
 
     :raises Exception: If Uvicorn fails to start or encounters runtime errors

@@ -13,9 +13,9 @@ sys.path.insert(0, os.path.abspath("../.."))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "IndigoBot"
-copyright = "2025, IndigoBot Team"
-author = "IndigoBot Team"
+project = "Indigobot"
+copyright = "2025, Team Indigo"
+author = "Team Indigo"
 release = "1.0.0"
 
 # -- General configuration ---------------------------------------------------
@@ -27,6 +27,16 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx_rtd_theme",
+    "sphinx.ext.autosectionlabel",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.ifconfig",
+    "sphinx.ext.githubpages",
+    "sphinx_autodoc_typehints",
+    "sphinx_copybutton",
+    "sphinx_design",
+    "sphinxcontrib.mermaid",
 ]
 
 templates_path = ["_templates"]
@@ -52,13 +62,13 @@ os.environ["SPHINX_BUILD"] = "1"
 
 
 # Mock modules that might not be available during documentation build
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-        return MagicMock()
+# class Mock(MagicMock):
+#     @classmethod
+#     def __getattr__(cls, name):
+#         return MagicMock()
 
-    def __call__(self, *args, **kwargs):
-        return MagicMock()
+#     def __call__(self, *args, **kwargs):
+#         return MagicMock()
 
 
 # Create more comprehensive mocking
@@ -109,29 +119,29 @@ MOCK_MODULES = [
     # Project modules
     "indigobot.config",
     "indigobot.context",
-    "indigobot.places_tool",
     "indigobot.quick_api",
     "indigobot.utils",
-    "indigobot.utils.custom_loader",
-    "indigobot.utils.jf_crawler",
-    "indigobot.utils.redundancy_check",
-    "indigobot.utils.refine_html",
-    "indigobot.utils.test_data_check",
+    "indigobot.utils.places_tool",
+    "indigobot.utils.caching",
+    "indigobot.etl.utils.custom_loader",
+    "indigobot.etl.utils.jf_crawler",
+    "indigobot.etl.utils.redundancy_check",
+    "indigobot.etl.utils.refine_html",
 ]
 
-# Update all mock modules
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+# # Update all mock modules
+# sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
-# Autodoc settings
-autodoc_default_options = {
-    "members": True,
-    "member-order": "bysource",
-    "undoc-members": True,
-    "show-inheritance": True,
-}
+# # Autodoc settings
+# autodoc_default_options = {
+#     "members": True,
+#     "member-order": "bysource",
+#     "undoc-members": True,
+#     "show-inheritance": True,
+# }
 
-# Don't fail on missing modules
-autodoc_mock_imports = MOCK_MODULES
+# # Don't fail on missing modules
+# autodoc_mock_imports = MOCK_MODULES
 
 # Intersphinx settings
 intersphinx_mapping = {
