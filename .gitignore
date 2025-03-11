@@ -1,7 +1,6 @@
 .DS_Store
 env
 .env
-.env
 __pycache__
 *.pyc
 *.pytest_cache
@@ -12,7 +11,7 @@ project_indigo.egg-info
 **/rag_data
 .vscode
 .coverage
-.chainlit
 chat_cache.dbvenv/
 venv/
 **.ini
+**translations
