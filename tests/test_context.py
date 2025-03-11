@@ -37,10 +37,10 @@ class TestContextModule(unittest.TestCase):
         # Setup
         mock_get_cached.return_value = None  # No cached response
         mock_chatbot_app.stream.side_effect = Exception("Test error")
-        
+
         # Execute
         result = invoke_indybot("Hello", {})
-        
+
         # Assert
         self.assertEqual(result, "Error invoking indybot: Test error")
 

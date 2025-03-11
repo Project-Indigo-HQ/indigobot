@@ -9,11 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from indigobot.utils.caching import (
-    cache_response,
-    get_cache_connection,
-    get_cached_response,
-)
+from indigobot.utils.caching import cache_response, get_cache_connection, get_cached_response
 
 
 class TestCachingModule:
@@ -117,17 +113,24 @@ class TestCachingModule:
 
         # Assert
         mock_get_connection.assert_called_once()
+
+
 """
 Unit tests for the caching module.
 
 This module contains tests for the functions in the indigobot.utils.caching module.
 """
 
-import unittest
 import hashlib
+import unittest
 from unittest.mock import MagicMock, patch
 
-from indigobot.utils.caching import get_cache_connection, cache_response, get_cached_response, CACHE_THRESHOLD
+from indigobot.utils.caching import (
+    CACHE_THRESHOLD,
+    cache_response,
+    get_cache_connection,
+    get_cached_response,
+)
 
 
 class TestCachingModule(unittest.TestCase):
@@ -156,12 +159,12 @@ class TestCachingModule(unittest.TestCase):
         mock_cursor = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
         mock_get_cache.return_value = mock_conn
-        
+
         # Mock the hash
         mock_hash = MagicMock()
         mock_hash.hexdigest.return_value = "test_hash"
         mock_sha256.return_value = mock_hash
-        
+
         # Mock fetchone to return None (no existing entry)
         mock_cursor.fetchone.return_value = None
 
@@ -182,7 +185,7 @@ class TestCachingModule(unittest.TestCase):
         mock_cursor = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
         mock_get_cache.return_value = mock_conn
-        
+
         # Mock the hash
         mock_hash = MagicMock()
         mock_hash.hexdigest.return_value = "test_hash"
@@ -209,7 +212,7 @@ class TestCachingModule(unittest.TestCase):
         mock_cursor = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
         mock_get_cache.return_value = mock_conn
-        
+
         # Mock the hash
         mock_hash = MagicMock()
         mock_hash.hexdigest.return_value = "test_hash"

@@ -9,11 +9,7 @@ from unittest.mock import MagicMock, patch
 
 from fastapi import Request
 
-from indigobot.quick_api import (
-    get_conversation_id,
-    send_message_to_chatwoot,
-    start_api,
-)
+from indigobot.quick_api import get_conversation_id, send_message_to_chatwoot, start_api
 
 
 class TestQuickApiModule:
@@ -114,6 +110,8 @@ class TestQuickApiModule:
         # Assert
         # The function might not call FastAPI directly
         mock_run.assert_called()
+
+
 """
 Unit tests for the quick_api module.
 
@@ -140,29 +138,32 @@ class TestQuickApiModule(unittest.TestCase):
         """Test the root endpoint."""
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"status": "healthy", "message": "RAG API is running!", "version": "1.0.0"})
+        self.assertEqual(
+            response.json(),
+            {"status": "healthy", "message": "RAG API is running!", "version": "1.0.0"},
+        )
 
     @patch("indigobot.quick_api.app")
     def test_webhook_endpoint(self, mock_app):
         """Test the webhook endpoint."""
         # We need to mock at a higher level since the actual implementation
         # has issues with the test client
-        
+
         # Create a mock response
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"answer": "Test response"}
-        
+
         # Setup the mock app to return our mock response
         self.client.post = MagicMock(return_value=mock_response)
-        
+
         # Execute
         response = self.client.post(
             "/webhook",
             json={"message": "Test message", "source": "test"},
-            headers={"Authorization": "test-token"}
+            headers={"Authorization": "test-token"},
         )
-        
+
         # Assert
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"answer": "Test response"})
@@ -173,34 +174,37 @@ class TestQuickApiModule(unittest.TestCase):
         # Setup
         mock_get_conversation_id.return_value = "test-id"
         mock_request = MagicMock(spec=Request)
-        
+
         # Execute - call the mock directly instead of the real function
         result = mock_get_conversation_id(mock_request)
-        
+
         # Assert
         self.assertEqual(result, "test-id")
         mock_get_conversation_id.assert_called_once_with(mock_request)
 
     @patch("indigobot.quick_api.requests.post")
-    @patch("indigobot.quick_api.os.environ", {
-        "CHATWOOT_API_TOKEN": "test-token",
-        "CHATWOOT_ACCOUNT_ID": "123",
-        "CHATWOOT_BASE_URL": "https://test.com"
-    })
+    @patch(
+        "indigobot.quick_api.os.environ",
+        {
+            "CHATWOOT_API_TOKEN": "test-token",
+            "CHATWOOT_ACCOUNT_ID": "123",
+            "CHATWOOT_BASE_URL": "https://test.com",
+        },
+    )
     def test_send_message_to_chatwoot(self, mock_post):
         """Test the send_message_to_chatwoot function."""
         # Setup
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_post.return_value = mock_response
-        
+
         # Execute
         result = send_message_to_chatwoot("test-id", "Test message")
-        
+
         # Assert
         # The function might return None instead of True
         mock_post.assert_called_once()
-        
+
         # Test with error response
         mock_response.status_code = 400
         result = send_message_to_chatwoot("test-id", "Test message")
