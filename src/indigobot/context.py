@@ -27,7 +27,6 @@ def invoke_indybot(input, thread_config):
     """
     cached_response = get_cached_response(input)
     if cached_response:
-        print("Returning cached response")
         return cached_response
 
     try:

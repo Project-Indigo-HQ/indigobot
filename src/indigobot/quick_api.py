@@ -32,11 +32,11 @@ def get_conversation_id(request: Request):
     :return: The conversation ID string or "unknown" if not found
     :rtype: str
     """
+
     try:
         body = request.scope.get("body", b"").decode("utf-8")  # Get raw body
         payload = json.loads(body) if body else {}  # Parse JSON if available
         conversation_id = payload.get("id", "unknown")  # Extract conversation ID
-        print(f"🔍 Rate Limiting Conversation ID: {conversation_id}")  # Debug log
         return str(conversation_id)
     except Exception as e:
         print(f"❌ Failed to get conversation ID: {e}")
@@ -58,6 +58,7 @@ def send_message_to_chatwoot(conversation_id, message):
     :raises requests.Timeout: If the API request times out (after 5 seconds)
     :raises requests.RequestException: If there's a network error
     """
+
     url = f"{CHATWOOT_API_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}/conversations/{conversation_id}/messages"
     headers = {
         "api_access_token": CHATWOOT_ACCESS_TOKEN,
@@ -98,33 +99,6 @@ class QueryResponse(BaseModel):
         }
 
 
-class Message(BaseModel):
-    """Model representing a message in the Chatwoot webhook payload.
-
-    :param content: The text content of the message
-    :type content: Optional[str]
-    """
-
-    content: Optional[str]  # To capture the user's message
-
-
-class WebhookRequest(BaseModel):
-    """Request model for the webhook endpoint.
-
-    :param message: The message content to be processed.
-    :type message: str
-    :param source: The source of the webhook request (e.g., 'slack', 'discord').
-                  Defaults to 'webhook'.
-    :type source: str
-    """
-
-    messages: List[Message] = []  # List of messages from Chatwoot
-    source: Optional[str] = "webhook"
-
-    class Config:
-        extra = "allow"
-
-
 # FastAPI app initialization
 app = FastAPI(
     title="RAG API",
@@ -132,11 +106,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Initialize limiter
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
-
-# Define API endpoints
-
 
 @app.exception_handler(RateLimitExceeded)
 async def ratelimit_handler(request: Request, exc: RateLimitExceeded):
@@ -151,8 +123,7 @@ async def ratelimit_handler(request: Request, exc: RateLimitExceeded):
     :rtype: PlainTextResponse
     """
     conversation_id = get_conversation_id(request)
-
-    print(f"⛔ Rate limit exceeded for conversation: {get_conversation_id(request)}")
+    print(f"⛔ Rate limit exceeded for conversation")
     return PlainTextResponse(
         "⛔ Rate limit exceeded. Try again later.", status_code=429
     )
@@ -161,9 +132,9 @@ async def ratelimit_handler(request: Request, exc: RateLimitExceeded):
 @app.post("/webhook", response_model=QueryResponse, summary="Webhook endpoint")
 @limiter.limit("10/minute")  # limit to 10 a minute
 async def webhook(
-    request: Request, webhook_request: WebhookRequest, authorization: str = Header(None)
+    request: Request, authorization: str = Header(None)
 ):
-    """Webhook endpoint to receive messages from external services.
+    """Webhook endpoint to receive messages from chatwoot.
 
     :param request: The webhook request containing the message
     :type request: WebhookRequest
