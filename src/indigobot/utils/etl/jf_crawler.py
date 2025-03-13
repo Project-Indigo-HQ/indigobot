@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 
 from requests import Session
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
+from urllib3.util.retry import Retry
 
 from indigobot.config import HTML_DIR, sitemaps
 from indigobot.utils.etl.redundancy_check import check_duplicate
