@@ -1,8 +1,10 @@
 black
 bs4
 build
+chainlit
 fastapi
 googlemaps
+gtts
 isort
 jq
 langchain
@@ -14,10 +16,8 @@ langchain-experimental
 langchain_google_community
 langchain_openai
 langgraph==0.2.74
-myst-parser
 pylama[all]
 pylama[toml]
-pytest
 pytz
 requests
 setuptools
