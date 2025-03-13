@@ -84,9 +84,5 @@ Do not mention to the user if you are missing info and needed to use
 
 memory = MemorySaver()
 chatbot_app = create_react_agent(
-    llm,
-    tools=tools,
-    prompt=system_prompt,
-    checkpointer=memory,
-    # store=use for caching(?)
+    llm, tools=tools, prompt=system_prompt, checkpointer=memory
 )

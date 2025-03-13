@@ -11,6 +11,7 @@ import numpy as np
 from gtts import gTTS
 from openai import AsyncOpenAI
 
+from indigobot.utils.etl.custom_loader import start_loader
 from indigobot.__main__ import main as indybot
 
 openai_client = AsyncOpenAI()
@@ -23,6 +24,7 @@ SILENCE_TIMEOUT = 1300.0  # Seconds of silence to consider the turn finished
 
 @cl.on_chat_start
 async def start():
+    start_loader()
     """Examples for setting/getting sessions"""
     # app_user = cl.user_session.get("user")
     # print(f"hello id: {cl.user_session.get("id")} user: {app_user} identifier: {app_user.identifier}")

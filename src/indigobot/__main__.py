@@ -5,7 +5,6 @@ This is the main chatbot program/file for conversational capabilities and info d
 import chainlit as cl
 
 from indigobot.context import invoke_indybot
-from indigobot.utils.etl.custom_loader import start_loader
 
 
 def main(cl_message: cl.Message) -> None:
@@ -24,7 +23,6 @@ def main(cl_message: cl.Message) -> None:
     :raises: Exception for any other runtime errors
     """
 
-    start_loader()
     if cl_message:
         # Configuration constants
         thread_config = {"configurable": {"thread_id": cl.context.session.id}}
