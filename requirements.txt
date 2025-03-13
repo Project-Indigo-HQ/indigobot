@@ -24,4 +24,5 @@ setuptools
 setuptools-scm
 slowapi
 unidecode
+urllib3
 uvicorn

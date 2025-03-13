@@ -11,11 +11,11 @@ import random
 import time
 import xml.etree.ElementTree as ET
 
-import requests
+from requests import Session
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
+from urllib3.util.retry import Retry
 
-from indigobot.config import CRAWL_TEMP, HTML_DIR, sitemaps
+from indigobot.config import HTML_DIR, sitemaps
 from indigobot.utils.etl.redundancy_check import check_duplicate
 
 
@@ -27,7 +27,7 @@ def start_session():
     :rtype: requests.Session
     :raises ImportError: If the requests package is not available
     """
-    session = requests.Session()
+    session = Session()
     retries = Retry(
         total=5, backoff_factor=1, status_forcelist=[403, 500, 502, 503, 504]
     )
@@ -84,27 +84,6 @@ def extract_xml(xml):
     return url_list
 
 
-def load_urls(folder_path):
-    """
-    Load URLs from all text files in a specified folder.
-
-    :param folder_path: Path to folder containing URL text files
-    :type folder_path: str
-    :return: Combined list of URLs from all text files
-    :rtype: list[str]
-    :raises FileNotFoundError: If folder_path doesn't exist
-    :raises IOError: If there are problems reading the files
-    :raises UnicodeDecodeError: If files aren't valid UTF-8
-    """
-    urls = []
-    for filename in os.listdir(folder_path):
-        if filename.endswith(".txt"):
-            file_path = os.path.join(folder_path, filename)
-            with open(file_path, "r", encoding="utf-8") as file:
-                urls.extend(file.read().splitlines())
-    return urls
-
-
 def download_and_save_html(urls, session):
     """
     Download HTML content from URLs and save to files.
@@ -140,32 +119,6 @@ def download_and_save_html(urls, session):
                 print(f"Error extracting html: {e}")
         else:
             print(f"Failed to fetch {url}, Status code: {response.status_code}")
-
-
-def parse_url_and_save(sitemap_url, target_file_name, session):
-    """
-    Parse URLs from a sitemap XML and save them to a text file.
-
-    :param sitemap_url: URL of the sitemap to parse
-    :type sitemap_url: str
-    :param target_file_name: Name for output file (without .txt extension)
-    :type target_file_name: str
-    :param session: Requests session for fetching sitemap
-    :type session: requests.Session
-    :raises OSError: If directory creation or file writing fails
-    :raises Exception: If sitemap fetching or parsing fails
-    """
-    urls = extract_xml(fetch_xml(sitemap_url, session))
-
-    # Ensure 'urls' directory exists
-    extracted_urls = os.path.join(CRAWL_TEMP, "extracted_urls")
-    os.makedirs(extracted_urls, exist_ok=True)
-
-    # Save URLs to a file
-    with open(f"crawl_temp/extracted_urls/{target_file_name}.txt", "w") as file:
-        for url in urls:
-            file.write(url + "\n")
-    time.sleep(5)
 
 
 def parse_url(sitemap_url, session):

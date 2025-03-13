@@ -1,9 +1,9 @@
 """
-LangChain application - Chatbot for Social Services (CfSS)
+RAG-based LLM application - Chatbot for Social Services (CfSS)
 
 This package provides a RAG-based chatbot that helps users find and access social
 services information in the Portland, OR area. It includes web scraping, document
-processing, and a conversational interface powered by various LLM providers.
+processing, and a conversational interface powered by an LLM.
 
 Author: Team Indigo,
 License: GPL3

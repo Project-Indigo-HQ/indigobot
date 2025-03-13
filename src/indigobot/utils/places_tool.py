@@ -1,25 +1,5 @@
 """
 This module provides tools for looking up place supplementary information using the Google Places API.
-
-.. moduleauthor:: Team Indigo
-
-Classes
--------
-PlacesLookupTool
-    A tool for retrieving and formatting place information from Google Places API.
-LookupPlacesInput
-    Pydantic model for validating input to the lookup_place_info function.
-
-Functions
----------
-lookup_place_info
-    Retrieves place information using Google Places API.
-extract_place_name
-    Extracts potential place names from user queries.
-store_place_info_in_vectorstore
-    Stores place information in the vector database.
-create_place_info_response
-    Creates responses incorporating place information.
 """
 
 import os
