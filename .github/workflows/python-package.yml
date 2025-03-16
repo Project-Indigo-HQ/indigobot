@@ -40,3 +40,4 @@ jobs:
           pytest
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GPLACES_API_KEY: ${{ secrets.GPLACES_API_KEY }}
