@@ -26,7 +26,7 @@ Context Management
    :show-inheritance:
 
 API Interface
-^^^^^^^^^^^^^
+=============
 
 .. automodule:: indigobot.quick_api
    :members:
