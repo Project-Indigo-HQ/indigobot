@@ -18,7 +18,7 @@ Configuration (indigobot.config)
    :show-inheritance:
 
 Context Management
-^^^^^^^^^^^^^^^^^^
+==================
 
 .. automodule:: indigobot.context
    :members:
