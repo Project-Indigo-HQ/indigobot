@@ -5,7 +5,6 @@ This is the main chatbot program/file for conversational capabilities and info d
 import threading
 import time
 
-from indigobot.context import invoke_indybot
 from indigobot.quick_api import start_api
 from indigobot.utils.etl.custom_loader import start_loader
 
@@ -25,7 +24,7 @@ def main() -> None:
         start_loader()
     except Exception as e:
         print(f"Error booting loader: {e}")
-        
+
     try:
         api_thread = threading.Thread(target=start_api, daemon=True)
         api_thread.start()

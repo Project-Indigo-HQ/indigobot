@@ -43,7 +43,8 @@ def invoke_indybot(input, thread_config):
         return response
 
     except Exception as e:
-        return f"Error invoking indybot: {e}"
+        print(f"Error invoking indybot: {e}")
+        return "It seems an error has occurred."
 
 
 retriever_tool = create_retriever_tool(

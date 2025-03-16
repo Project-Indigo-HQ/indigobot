@@ -16,3 +16,4 @@ project_indigo.egg-info
 chat_cache.dbvenv/
 venv/
 **.ini
+**.xml

@@ -1,129 +1,14 @@
 """
 Unit tests for the caching module.
 
-This module contains tests for the functions in the indigobot.utils.caching module,
-including cache connection, storing responses, and retrieving cached responses.
-"""
-
-from unittest.mock import MagicMock, patch
-
-import pytest
-
-from indigobot.utils.caching import cache_response, get_cache_connection, get_cached_response
-
-
-class TestCachingModule:
-    """Test cases for the caching module functions."""
-
-    @patch("indigobot.utils.caching.sqlite3")
-    def test_get_cache_connection(self, mock_sqlite):
-        """Test the get_cache_connection function."""
-        # Setup
-        mock_connection = MagicMock()
-        mock_sqlite.connect.return_value = mock_connection
-
-        # Execute
-        result = get_cache_connection()
-
-        # Assert
-        assert result == mock_connection
-        mock_sqlite.connect.assert_called_once()
-
-    @patch("indigobot.utils.caching.get_cache_connection")
-    @patch("indigobot.utils.caching.CACHE_THRESHOLD", 2)  # Mock the threshold constant
-    def test_cache_response(self, mock_get_connection):
-        """Test the cache_response function."""
-        # Setup
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_conn.cursor.return_value = mock_cursor
-        mock_get_connection.return_value = mock_conn
-
-        # Mock fetchone to return None (no existing entry)
-        mock_cursor.fetchone.return_value = None
-
-        query = "test query"
-        response = "test response"
-
-        # Execute
-        cache_response(query, response)
-
-        # Assert
-        mock_get_connection.assert_called_once()
-        mock_conn.cursor.assert_called()
-        # We don't check commit() since it might not be called in the implementation
-        assert mock_cursor.execute.call_count >= 1  # Should call execute at least once
-
-    @patch("indigobot.utils.caching.get_cache_connection")
-    def test_get_cached_response_hit(self, mock_get_connection):
-        """Test the get_cached_response function with a cache hit."""
-        # Setup
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_conn.cursor.return_value = mock_cursor
-        mock_get_connection.return_value = mock_conn
-
-        # Mock a cache hit with response and count
-        mock_cursor.fetchone.return_value = ("cached response", 3)
-
-        query = "test query"
-
-        # Execute
-        result = get_cached_response(query)
-
-        # Assert
-        assert result == "cached response"
-        mock_get_connection.assert_called_once()
-        mock_conn.cursor.assert_called_once()
-        mock_cursor.execute.assert_called_once()
-
-    @patch("indigobot.utils.caching.get_cache_connection")
-    def test_get_cached_response_miss(self, mock_get_connection):
-        """Test the get_cached_response function with a cache miss."""
-        # Setup
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_conn.cursor.return_value = mock_cursor
-        mock_get_connection.return_value = mock_conn
-
-        # Mock a cache miss
-        mock_cursor.fetchone.return_value = None
-
-        query = "test query"
-
-        # Execute
-        result = get_cached_response(query)
-
-        # Assert
-        assert result is None
-        mock_get_connection.assert_called_once()
-        mock_conn.cursor.assert_called_once()
-        assert mock_cursor.execute.call_count >= 1  # Should call execute at least once
-
-    @patch("indigobot.utils.caching.get_cache_connection")
-    def test_get_cached_response_error(self, mock_get_connection):
-        """Test the get_cached_response function with an error."""
-        # Setup
-        mock_get_connection.side_effect = Exception("Connection error")
-        query = "test query"
-
-        # Execute
-        with pytest.raises(Exception):
-            result = get_cached_response(query)
-
-        # Assert
-        mock_get_connection.assert_called_once()
-
-
-"""
-Unit tests for the caching module.
-
 This module contains tests for the functions in the indigobot.utils.caching module.
 """
 
 import hashlib
 import unittest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from indigobot.utils.caching import (
     CACHE_THRESHOLD,
@@ -147,7 +32,7 @@ class TestCachingModule(unittest.TestCase):
         result = get_cache_connection()
 
         # Assert
-        assert result == mock_connection
+        self.assertEqual(result, mock_connection)
         mock_sqlite.connect.assert_called_once()
 
     @patch("indigobot.utils.caching.get_cache_connection")
@@ -174,7 +59,7 @@ class TestCachingModule(unittest.TestCase):
         # Assert
         mock_get_cache.assert_called_once()
         mock_conn.cursor.assert_called_once()
-        assert mock_cursor.execute.call_count >= 1
+        self.assertGreaterEqual(mock_cursor.execute.call_count, 1)
 
     @patch("indigobot.utils.caching.get_cache_connection")
     @patch("indigobot.utils.caching.hashlib.sha256")
@@ -198,7 +83,7 @@ class TestCachingModule(unittest.TestCase):
         result = get_cached_response("test query")
 
         # Assert
-        assert result == "cached response"
+        self.assertEqual(result, "cached response")
         mock_get_cache.assert_called_once()
         mock_conn.cursor.assert_called_once()
         mock_cursor.execute.assert_called_once()
@@ -225,11 +110,24 @@ class TestCachingModule(unittest.TestCase):
         result = get_cached_response("test query")
 
         # Assert
-        assert result is None
+        self.assertIsNone(result)
         mock_get_cache.assert_called_once()
         mock_conn.cursor.assert_called_once()
-        # The implementation calls execute twice, so we can't assert called_once
-        assert mock_cursor.execute.call_count >= 1
+        self.assertGreaterEqual(mock_cursor.execute.call_count, 1)
+
+    @patch("indigobot.utils.caching.get_cache_connection")
+    def test_get_cached_response_error(self, mock_get_connection):
+        """Test the get_cached_response function with an error."""
+        # Setup
+        mock_get_connection.side_effect = Exception("Connection error")
+        query = "test query"
+
+        # Execute
+        with self.assertRaises(Exception):
+            get_cached_response(query)
+
+        # Assert
+        mock_get_connection.assert_called_once()
 
 
 if __name__ == "__main__":
