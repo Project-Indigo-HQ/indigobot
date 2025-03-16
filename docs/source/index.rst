@@ -86,7 +86,7 @@ Documentation
    :maxdepth: 2
    :caption: API Reference
 
-   indigobot
+   modules
 
 .. toctree::
    :maxdepth: 1

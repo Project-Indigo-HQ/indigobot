@@ -33,13 +33,11 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.ifconfig",
     "sphinx.ext.githubpages",
-    "sphinx_autodoc_typehints",
-    "sphinx_copybutton",
-    "sphinx_design",
-    "sphinxcontrib.mermaid",
+    "sphinx.ext.autosummary",
 ]
 
 templates_path = ["_templates"]
+autosummary_generate = True
 exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
@@ -60,15 +58,28 @@ html_theme_options = {
 # Set environment variable to indicate documentation build
 os.environ["SPHINX_BUILD"] = "1"
 
+# This is critical - we need to make sure the actual module is imported
+# before any mocking happens, so the real docstrings are used
+import indigobot
+
 
 # Mock modules that might not be available during documentation build
-# class Mock(MagicMock):
-#     @classmethod
-#     def __getattr__(cls, name):
-#         return MagicMock()
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
 
-#     def __call__(self, *args, **kwargs):
-#         return MagicMock()
+    def __call__(self, *args, **kwargs):
+        return MagicMock()
+        
+    def __bool__(self):
+        return False
+        
+    def __iter__(self):
+        return iter([])
+        
+    def __getitem__(self, key):
+        return MagicMock()
 
 
 # Create more comprehensive mocking
@@ -116,32 +127,23 @@ MOCK_MODULES = [
     "bs4",
     "googlemaps",
     "unidecode",
-    # Project modules
-    "indigobot.config",
-    "indigobot.context",
-    "indigobot.quick_api",
-    "indigobot.utils",
-    "indigobot.utils.places_tool",
-    "indigobot.utils.caching",
-    "indigobot.etl.utils.custom_loader",
-    "indigobot.etl.utils.jf_crawler",
-    "indigobot.etl.utils.redundancy_check",
-    "indigobot.etl.utils.refine_html",
 ]
 
-# # Update all mock modules
-# sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+# Only mock modules that don't exist
+for mod_name in MOCK_MODULES:
+    if mod_name not in sys.modules:
+        sys.modules[mod_name] = Mock()
 
-# # Autodoc settings
-# autodoc_default_options = {
-#     "members": True,
-#     "member-order": "bysource",
-#     "undoc-members": True,
-#     "show-inheritance": True,
-# }
+# Autodoc settings
+autodoc_default_options = {
+    "members": True,
+    "member-order": "bysource",
+    "undoc-members": True,
+    "show-inheritance": True,
+}
 
-# # Don't fail on missing modules
-# autodoc_mock_imports = MOCK_MODULES
+# Don't fail on missing modules
+autodoc_mock_imports = MOCK_MODULES
 
 # Intersphinx settings
 intersphinx_mapping = {
