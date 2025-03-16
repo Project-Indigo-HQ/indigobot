@@ -58,6 +58,9 @@ html_theme_options = {
 # Set environment variable to indicate documentation build
 os.environ["SPHINX_BUILD"] = "1"
 
+# Add the mock modules directory to the path
+sys.path.insert(0, os.path.abspath("_mock_modules"))
+
 # This is critical - we need to make sure the actual module is imported
 # before any mocking happens, so the real docstrings are used
 import indigobot
@@ -80,6 +83,9 @@ class Mock(MagicMock):
         
     def __getitem__(self, key):
         return MagicMock()
+        
+    def __str__(self):
+        return ""
 
 
 # Create more comprehensive mocking
@@ -124,6 +130,14 @@ MOCK_MODULES = [
     "pydantic",
     "pydantic.main",
     "pydantic.BaseModel",
+    "pydantic.fields",
+    "pydantic.config",
+    "slowapi",
+    "slowapi.errors",
+    "slowapi.middleware",
+    "slowapi.util",
+    "requests",
+    "requests.exceptions",
     "bs4",
     "googlemaps",
     "unidecode",
