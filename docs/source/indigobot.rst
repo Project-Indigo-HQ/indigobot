@@ -18,7 +18,7 @@ Configuration (indigobot.config)
    :show-inheritance:
 
 Context Management
-^^^^^^^^^^^^^^^^^^
+==================
 
 .. automodule:: indigobot.context
    :members:
@@ -26,7 +26,7 @@ Context Management
    :show-inheritance:
 
 API Interface
-^^^^^^^^^^^^^
+=============
 
 .. automodule:: indigobot.quick_api
    :members:
