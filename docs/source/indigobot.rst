@@ -1,4 +1,4 @@
-Indigobot Package
+indigobot package
 =================
 
 .. automodule:: indigobot
@@ -6,35 +6,27 @@ Indigobot Package
    :undoc-members:
    :show-inheritance:
 
-Core Modules
-------------
+Submodules
+----------
 
-Configuration (indigobot.config)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+indigobot.config module
+-----------------------
 
 .. automodule:: indigobot.config
    :members:
    :undoc-members:
    :show-inheritance:
 
-Context Management
-==================
+indigobot.context module
+------------------------
 
 .. automodule:: indigobot.context
    :members:
    :undoc-members:
    :show-inheritance:
 
-API Interface
-=============
-
-.. automodule:: indigobot.quick_api
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Utilities and Tools
--------------------
+Subpackages
+-----------
 
 .. toctree::
    :maxdepth: 4
