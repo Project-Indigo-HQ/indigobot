@@ -36,7 +36,7 @@ def main() -> None:
         while True:
             time.sleep(3600)  # Sleep for one hour
     except Exception as e:
-        print(f"Error booting API: {e}")
+        print(f"Error starting API server: {e}")
 
 
 if __name__ == "__main__":
