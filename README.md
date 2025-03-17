@@ -2,6 +2,8 @@
 
 **Portland State University | Computer Science capstone project | FW24: Sept 2024 - March 2025**
 
+This project repo contains a branch for local usage and a branch tailored for the web UI.
+
 ## Install
 
 ```bash
@@ -18,6 +20,7 @@ python3 -m indigobot
 ## API Keys
 
 This program requires API key environment variables for:
+
 - OpenAI (**required** for LLM engine)
 - Google Places (Places lookup tool for supplementary info)
 

@@ -1,92 +1,43 @@
 """
-This is the main chatbot program/file for conversational capabilities and info distribution.
+This module serves as the primary entry point for the IndigoBot application.
+It initializes the document loader, starts the API server, and maintains
+the application's runtime environment.
 """
 
-import readline  # Required for using arrow keys in CLI
 import threading
+import time
 
-from indigobot.context import invoke_indybot
 from indigobot.quick_api import start_api
 from indigobot.utils.etl.custom_loader import start_loader
 
 
-def load():
+def main() -> None:
     """
-    Prompt user to execute the document loader functionality.
+    Main application entry point.
+    The API server runs as a daemon thread, allowing the application
+    to be terminated gracefully when the main thread exits.
 
-    Asks the user if they want to run the document loader and executes it if confirmed.
-    Uses the start_loader() function from custom_loader module.
-
-    :raises: Exception if the loader encounters an error
-    """
-    load_res = input("Would you like to execute the loader? (y/n) ")
-    if load_res == "y":
-        try:
-            start_loader()
-        except Exception as e:
-            print(f"Error booting loader: {e}")
-
-
-def api():
-    """
-    Prompt user to start the API server.
-
-    Asks the user if they want to enable the API server and starts it if confirmed.
-    Launches quick_api.py as a subprocess and waits 10 seconds for initialization.
-
-    :raises: Exception if the API server fails to start
-    """
-    load_res = input("Would you like to enable the API? (y/n) ")
-    if load_res == "y":
-        try:
-            api_thread = threading.Thread(target=start_api, daemon=True)
-            api_thread.start()
-        except Exception as e:
-            print(f"Error booting API: {e}")
-
-
-def main(skip_loader: bool = False, skip_api: bool = False) -> None:
-    """
-    Main function that runs the interactive chat loop.
-    Initializes the chatbot environment and starts an interactive session.
-    Handles user input and displays model responses in a loop until the user exits
-    by entering an empty line.
-
-    :param skip_loader: If True, skips the document loader prompt. Useful for testing.
-    :type skip_loader: bool
-    :param skip_api: If True, skips the API server prompt. Useful for testing.
-    :type skip_api: bool
     :return: None
-    :raises: KeyboardInterrupt if user interrupts with Ctrl+C
-    :raises: Exception for any other runtime errors
+    :raises: Exception: Logs errors from loader or API initialization but continues execution
     """
-    if not skip_loader:
-        load()
 
-    if not skip_api:
-        api()
+    try:
+        # Initialize document loader to populate vector database
+        start_loader()
+    except Exception as e:
+        print(f"Error booting loader: {e}")
 
-    # Configuration constants
-    thread_config = {"configurable": {"thread_id": "abc123"}}
+    try:
+        # Start API server in a daemon thread
+        api_thread = threading.Thread(target=start_api, daemon=True)
+        api_thread.start()
 
-    while True:
-        try:
-            line = input("\nllm>> ")
-            if line:
-                response = invoke_indybot(line, thread_config=thread_config)
-                print(f"\n{response}")
-
-            else:
-                break
-
-        except Exception as e:
-            print(f"Error with llm input: {e}")
+        # Keep main thread alive
+        while True:
+            time.sleep(3600)  # Sleep for one hour
+    except Exception as e:
+        print(f"Error booting API: {e}")
 
 
 if __name__ == "__main__":
-    try:
-        main(skip_loader=False, skip_api=False)
-    except KeyboardInterrupt:
-        print("\nExiting...")
-    except Exception as e:
-        print(f"Error: {e}")
+    main()
