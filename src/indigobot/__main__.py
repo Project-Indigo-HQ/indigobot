@@ -25,7 +25,7 @@ def main() -> None:
         # Initialize document loader to populate vector database
         start_loader()
     except Exception as e:
-        print(f"Error initializing document loader: {e}")
+        print(f"Error booting loader: {e}")
 
     try:
         # Start API server in a daemon thread
@@ -36,7 +36,7 @@ def main() -> None:
         while True:
             time.sleep(3600)  # Sleep for one hour
     except Exception as e:
-        print(f"Error starting API server: {e}")
+        print(f"Error booting API: {e}")
 
 
 if __name__ == "__main__":

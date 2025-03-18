@@ -6,13 +6,12 @@ endpoint, and listing available document sources.
 
 import json
 import os
-from typing import List, Optional
 
 import requests
 import uvicorn
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import PlainTextResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -93,10 +92,11 @@ class QueryResponse(BaseModel):
 
     answer: str
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {"answer": "LLM agents are AI systems that can..."}
         }
+    )
 
 
 # FastAPI app initialization
@@ -110,6 +110,7 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 
+
 @app.exception_handler(RateLimitExceeded)
 async def ratelimit_handler(request: Request, exc: RateLimitExceeded):
     """Exception handler for rate limit exceeded errors.
@@ -122,8 +123,8 @@ async def ratelimit_handler(request: Request, exc: RateLimitExceeded):
     :return: Plain text response with 429 status code
     :rtype: PlainTextResponse
     """
-    conversation_id = get_conversation_id(request)
-    print(f"⛔ Rate limit exceeded for conversation")
+    get_conversation_id(request)
+    print("⛔ Rate limit exceeded for conversation")
     return PlainTextResponse(
         "⛔ Rate limit exceeded. Try again later.", status_code=429
     )
@@ -131,9 +132,7 @@ async def ratelimit_handler(request: Request, exc: RateLimitExceeded):
 
 @app.post("/webhook", response_model=QueryResponse, summary="Webhook endpoint")
 @limiter.limit("10/minute")  # limit to 10 a minute
-async def webhook(
-    request: Request, authorization: str = Header(None)
-):
+async def webhook(request: Request, authorization: str = Header(None)):
     """Webhook endpoint to receive messages from chatwoot.
 
     :param request: The webhook request containing the message

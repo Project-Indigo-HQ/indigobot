@@ -42,7 +42,7 @@ class TestContextModule(unittest.TestCase):
         result = invoke_indybot("Hello", {})
 
         # Assert
-        self.assertEqual(result, "Error invoking indybot: Test error")
+        self.assertEqual(result, "It seems an error has occurred.")
 
 
 if __name__ == "__main__":
