@@ -2,7 +2,8 @@
 
 **Portland State University | Computer Science capstone project | FW24: Sept 2024 - March 2025**
 
-This project repo contains a branch for local usage and a branch tailored for the web UI.
+This project repo contains a branch for local usage, a branch tailored for the web UI, and a 
+branch with code for Read the Docs. The main branch is for our API version on the code.
 
 ## Install
 
