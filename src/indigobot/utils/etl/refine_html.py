@@ -76,7 +76,6 @@ def parse_and_save(file_path):
                 "h4",
                 "h5",
                 "h6",
-                # "p", #NOTE: What would this add to the processing? -Kyle
             ]
         ):
             content = {

@@ -79,5 +79,4 @@ chatbot_app = create_react_agent(
     tools=tools,
     prompt=system_prompt,
     checkpointer=memory,
-    # store=use for caching(?)
 )
